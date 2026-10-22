@@ -1,4 +1,5 @@
 import { SCHEMA_VERSION, type MuscuDB } from './database'
+import { DEFAULT_EXERCISES, DEFAULT_TEMPLATES } from './seed'
 
 export const BACKUP_APP_ID = 'appli-muscu'
 
@@ -16,7 +17,16 @@ type BackupTables = BackupFile['tables']
 
 // Transformations des sauvegardes faites avec une ancienne version du schéma.
 // Clé = version de départ ; la fonction renvoie les tables au format de la version suivante.
-const BACKUP_MIGRATIONS: Record<number, (tables: BackupTables) => BackupTables> = {}
+const BACKUP_MIGRATIONS: Record<number, (tables: BackupTables) => BackupTables> = {
+  // v1 → v2 : arrivée des exercices, modèles, journées et séances
+  1: (tables) => ({
+    ...tables,
+    exercises: structuredClone(DEFAULT_EXERCISES),
+    templates: structuredClone(DEFAULT_TEMPLATES),
+    days: [],
+    sessions: [],
+  }),
+}
 
 export async function exportBackup(database: MuscuDB, now = new Date()): Promise<BackupFile> {
   const tables: BackupTables = {}

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { db } from '../db/database'
 import { BackupError, importBackup } from '../db/backup'
 import { setSetting, useSettings, type Theme } from '../db/settings'
-import { ChevronLeftIcon } from '../components/icons'
+import { ChevronLeftIcon, ChevronRightIcon } from '../components/icons'
 import { Screen } from '../components/Screen'
 import { exportToFile, readBackupFile } from '../lib/backupFile'
 import { daysSince, formatDaysAgo, formatFullDate } from '../lib/dates'
+import { formatNumber } from '../lib/format'
 import { isStoragePersisted } from '../lib/storage'
 
 const THEMES: { value: Theme; label: string }[] = [
@@ -92,6 +93,16 @@ export function Reglages() {
             </button>
           ))}
         </div>
+      </div>
+
+      <h2 className="section-title">Entraînement</h2>
+      <div className="card list-card">
+        <Link to="/reglages/exercices" className="list-row">
+          <span>Exercices et modèles</span>
+          <span className="list-row-end muted small">
+            Pas de {formatNumber(settings?.weightStep ?? 2.5)} kg <ChevronRightIcon />
+          </span>
+        </Link>
       </div>
 
       <h2 className="section-title">Sauvegarde</h2>

@@ -1,15 +1,82 @@
-import Dexie, { type EntityTable } from 'dexie'
+import Dexie, { type EntityTable, type Transaction } from 'dexie'
+import { DEFAULT_EXERCISES, DEFAULT_TEMPLATES } from './seed'
 
 export interface SettingRow {
   key: string
   value: unknown
 }
 
+/** weight = charge × reps · bodyweight = poids du corps (kg = lest) · duration = secondes */
+export type ExerciseType = 'weight' | 'bodyweight' | 'duration'
+
+export interface Exercise {
+  id: string
+  name: string
+  type: ExerciseType
+  /** Pas de charge propre à l'exercice (sinon le réglage général). */
+  step?: number
+  /** Exercice supprimé mais déjà utilisé : gardé pour l'historique. */
+  hidden?: boolean
+}
+
+export type SessionTemplateId = 'dos-biceps' | 'pecs-triceps' | 'jambes' | 'bras'
+export type TemplateId = SessionTemplateId | 'abdos'
+
+export interface Template {
+  id: TemplateId
+  name: string
+  exerciseIds: string[]
+}
+
+export type DayChoice = SessionTemplateId | 'repos'
+
+export interface Day {
+  /** AAAA-MM-JJ (heure locale) */
+  date: string
+  choice: DayChoice
+  /** « J'y vais vers… » au format HH:MM */
+  plannedTime?: string
+}
+
+export interface SetEntry {
+  reps?: number
+  /** Charge, ou lest pour le poids du corps */
+  kg?: number
+  seconds?: number
+  at: string
+}
+
+export interface SessionExercise {
+  exerciseId: string
+  /** Type au moment de la séance (l'exercice peut changer de type ensuite). */
+  type: ExerciseType
+  sets: SetEntry[]
+  note: string
+  /** Ajouté via « + Abdos » : jamais recopié dans le modèle. */
+  fromAbs?: boolean
+}
+
+export interface Session {
+  id: string
+  templateId: SessionTemplateId
+  date: string
+  startedAt: string
+  endedAt: string | null
+  status: 'active' | 'done'
+  exercises: SessionExercise[]
+  /** Exercices ayant au moins une série (index pour retrouver « la dernière fois »). */
+  exerciseIds: string[]
+}
+
 /** Version actuelle du schéma (la plus haute déclarée ci-dessous). */
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
 export class MuscuDB extends Dexie {
   settings!: EntityTable<SettingRow, 'key'>
+  exercises!: EntityTable<Exercise, 'id'>
+  templates!: EntityTable<Template, 'id'>
+  days!: EntityTable<Day, 'date'>
+  sessions!: EntityTable<Session, 'id'>
 
   constructor(name = 'appli-muscu') {
     super(name)
@@ -20,7 +87,25 @@ export class MuscuDB extends Dexie {
     this.version(1).stores({
       settings: 'key',
     })
+
+    // Étape 2 : exercices, modèles, journées et séances
+    this.version(2)
+      .stores({
+        exercises: 'id, name',
+        templates: 'id',
+        days: 'date',
+        sessions: 'id, status, date, templateId, startedAt, *exerciseIds',
+      })
+      .upgrade(seedDefaults)
+
+    // Base toute neuve : on la remplit directement avec les exercices par défaut
+    this.on('populate', seedDefaults)
   }
+}
+
+async function seedDefaults(tx: Transaction): Promise<void> {
+  await tx.table('exercises').bulkPut(structuredClone(DEFAULT_EXERCISES))
+  await tx.table('templates').bulkPut(structuredClone(DEFAULT_TEMPLATES))
 }
 
 export const db = new MuscuDB()

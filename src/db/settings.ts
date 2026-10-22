@@ -11,6 +11,8 @@ export interface Settings {
   lastExportAt: string | null
   /** Le rappel de sauvegarde est masqué jusqu'à cette date (ISO). */
   reminderSnoozedUntil: string | null
+  /** Pas de charge par défaut des boutons + / − (kg). */
+  weightStep: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -18,6 +20,7 @@ export const DEFAULT_SETTINGS: Settings = {
   firstLaunchAt: null,
   lastExportAt: null,
   reminderSnoozedUntil: null,
+  weightStep: 2.5,
 }
 
 export async function readSettings(database: MuscuDB = db): Promise<Settings> {

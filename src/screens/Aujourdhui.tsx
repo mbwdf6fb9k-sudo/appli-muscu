@@ -1,17 +1,163 @@
+import { useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { BackupBanner } from '../components/BackupBanner'
-import { ComingSoon } from '../components/ComingSoon'
-import { DumbbellIcon } from '../components/icons'
+import { CheckIcon, ChevronRightIcon, CloseIcon } from '../components/icons'
 import { Screen, SettingsLink } from '../components/Screen'
-import { formatLongDate } from '../lib/dates'
+import type { DayChoice, Session } from '../db/database'
+import { setDayChoice, setPlannedTime, useDay } from '../db/days'
+import { SESSION_TEMPLATE_IDS, TEMPLATE_NAMES } from '../db/seed'
+import { startSession, useActiveSession, useDoneSessionsOn, useLastDoneDates } from '../db/sessions'
+import { daysSince, formatDaysAgo, formatLongDate, localDateStamp } from '../lib/dates'
+import { formatDuration, formatTime } from '../lib/format'
+import { sessionStats } from '../lib/sessionStats'
+import { useNow } from '../lib/useNow'
 
 export function Aujourdhui() {
+  const navigate = useNavigate()
+  const now = useNow()
+  const today = localDateStamp(now)
+  const day = useDay(today)
+  const active = useActiveSession()
+  const doneToday = useDoneSessionsOn(today)
+  const lastDone = useLastDoneDates()
+  const [starting, setStarting] = useState(false)
+
+  const choice = day?.choice ?? null
+  const loading = day === undefined || active === undefined || doneToday === undefined
+
+  async function handleStart() {
+    if (!choice || choice === 'repos') return
+    setStarting(true)
+    try {
+      await startSession(choice)
+      navigate('/seance')
+    } finally {
+      setStarting(false)
+    }
+  }
+
+  const toggle = (value: DayChoice) => setDayChoice(today, choice === value ? null : value)
+
   return (
-    <Screen title="Aujourd’hui" subtitle={formatLongDate(new Date())} trailing={<SettingsLink />}>
+    <Screen title="Aujourd’hui" subtitle={formatLongDate(now)} trailing={<SettingsLink />}>
       <BackupBanner />
-      <ComingSoon icon={<DumbbellIcon />}>
-        Ici, tu choisiras ta séance du jour (Dos-Biceps, Pecs-Triceps, Jambes, Bras ou Repos) et tu la
-        lanceras.
-      </ComingSoon>
+      {loading ? null : active ? (
+        <ActiveSessionCard session={active} now={now} />
+      ) : (
+        <>
+          {doneToday.map((session) => (
+            <DoneSessionCard key={session.id} session={session} />
+          ))}
+
+          <h2 className="section-title">
+            {doneToday.length > 0 ? 'Encore une séance ?' : 'Qu’est-ce que tu fais aujourd’hui ?'}
+          </h2>
+          <div className="choice-list" role="radiogroup" aria-label="Séance du jour">
+            {SESSION_TEMPLATE_IDS.map((id) => {
+              const last = lastDone?.[id]
+              return (
+                <ChoiceCard
+                  key={id}
+                  label={TEMPLATE_NAMES[id]}
+                  detail={last ? `faite ${formatDaysAgo(daysSince(last, now))}` : 'jamais faite'}
+                  selected={choice === id}
+                  onSelect={() => toggle(id)}
+                />
+              )
+            })}
+            <ChoiceCard
+              label="Repos"
+              detail="récupération"
+              selected={choice === 'repos'}
+              onSelect={() => toggle('repos')}
+            />
+          </div>
+
+          {choice && choice !== 'repos' && (
+            <div className="today-start">
+              <div className="card time-field">
+                <label htmlFor="planned-time">J’y vais vers…</label>
+                <div className="time-field-input">
+                  <input
+                    id="planned-time"
+                    type="time"
+                    value={day?.plannedTime ?? ''}
+                    onChange={(e) => setPlannedTime(today, e.target.value || null)}
+                  />
+                  {day?.plannedTime && (
+                    <button
+                      className="icon-btn icon-btn-small"
+                      aria-label="Effacer l’heure"
+                      onClick={() => setPlannedTime(today, null)}
+                    >
+                      <CloseIcon />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <button className="btn btn-primary btn-large" onClick={handleStart} disabled={starting}>
+                Commencer la séance
+              </button>
+            </div>
+          )}
+
+          {!choice && doneToday.length === 0 && (
+            <p className="muted small hint">Sans choix, la journée compte comme un jour de repos.</p>
+          )}
+        </>
+      )}
     </Screen>
+  )
+}
+
+function ChoiceCard(props: { label: string; detail: string; selected: boolean; onSelect: () => void }) {
+  return (
+    <button
+      role="radio"
+      aria-checked={props.selected}
+      className={props.selected ? 'choice-card selected' : 'choice-card'}
+      onClick={props.onSelect}
+    >
+      <span className="choice-text">
+        <span className="choice-label">{props.label}</span>
+        <span className="choice-detail">{props.detail}</span>
+      </span>
+      <span className="choice-radio">{props.selected && <CheckIcon />}</span>
+    </button>
+  )
+}
+
+function ActiveSessionCard({ session, now }: { session: Session; now: Date }) {
+  const stats = sessionStats(session, now)
+  return (
+    <Link to="/seance" className="card hero-card">
+      <span className="hero-eyebrow">
+        <span className="live-dot" /> Séance en cours
+      </span>
+      <span className="hero-title">{TEMPLATE_NAMES[session.templateId]}</span>
+      <span className="muted">
+        Commencée à {formatTime(new Date(session.startedAt))} · {formatDuration(stats.durationMs)} ·{' '}
+        {stats.setCount} série{stats.setCount > 1 ? 's' : ''}
+      </span>
+      <span className="btn btn-primary hero-btn">Reprendre</span>
+    </Link>
+  )
+}
+
+function DoneSessionCard({ session }: { session: Session }) {
+  const stats = sessionStats(session)
+  return (
+    <Link to={`/seance/${session.id}/resume`} className="card done-card">
+      <span className="done-check">
+        <CheckIcon />
+      </span>
+      <span className="done-text">
+        <span className="done-title">{TEMPLATE_NAMES[session.templateId]} faite</span>
+        <span className="muted small">
+          {formatDuration(stats.durationMs)} · {stats.setCount} série{stats.setCount > 1 ? 's' : ''}
+        </span>
+      </span>
+      <ChevronRightIcon />
+    </Link>
   )
 }
