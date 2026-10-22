@@ -16,8 +16,11 @@ export function useWidth<T extends HTMLElement>() {
 
 /** Graduations « rondes » entre min et max (ex. 60, 70, 80, 90). */
 export function niceTicks(min: number, max: number, count = 4): number[] {
-  if (min === max) {
-    const pad = Math.max(1, Math.abs(min) * 0.1)
+  // Valeurs (presque) identiques : écart minimal de 3 % (au moins 1), sinon un seul point à 74 kg
+  // donnerait une échelle de 65 à 85
+  const minSpan = Math.max(1, Math.abs(max) * 0.03)
+  if (max - min < minSpan) {
+    const pad = (minSpan - (max - min)) / 2
     min -= pad
     max += pad
   }
