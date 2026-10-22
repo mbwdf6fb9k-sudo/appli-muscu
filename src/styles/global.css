@@ -93,11 +93,7 @@ p {
 /* ============ Structure ============ */
 .app {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  /* --app-height : hauteur réelle de l'écran en mode appli (voir lib/viewport.ts) */
-  height: var(--app-height, 100%);
+  inset: 0;
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -650,6 +646,26 @@ p {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.time-input-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.time-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--accent-text);
+  font-size: 17px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.time-input-wrap:has(.time-placeholder) input {
+  color: transparent;
 }
 
 .time-field input {

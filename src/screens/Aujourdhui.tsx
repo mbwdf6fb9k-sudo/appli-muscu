@@ -78,12 +78,16 @@ export function Aujourdhui() {
               <div className="card time-field">
                 <label htmlFor="planned-time">J’y vais vers…</label>
                 <div className="time-field-input">
-                  <input
-                    id="planned-time"
-                    type="time"
-                    value={day?.plannedTime ?? ''}
-                    onChange={(e) => setPlannedTime(today, e.target.value || null)}
-                  />
+                  <span className="time-input-wrap">
+                    <input
+                      id="planned-time"
+                      type="time"
+                      value={day?.plannedTime ?? ''}
+                      onChange={(e) => setPlannedTime(today, e.target.value || null)}
+                    />
+                    {/* Un champ heure vide n'affiche rien sur iPhone */}
+                    {!day?.plannedTime && <span className="time-placeholder">Choisir</span>}
+                  </span>
                   {day?.plannedTime && (
                     <button
                       className="icon-btn icon-btn-small"

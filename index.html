@@ -10,7 +10,9 @@
     <!-- iPhone : appli plein écran depuis l'écran d'accueil -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- « black » (et non « black-translucent ») : l'appli commence sous la barre d'état, ce qui évite
+         le défaut d'iOS où la hauteur annoncée est trop courte et laisse un vide en bas -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Muscu" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
