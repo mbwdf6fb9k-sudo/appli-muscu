@@ -4,6 +4,13 @@ import { niceTicks, useWidth } from './chartUtils'
 export interface Point {
   date: Date
   value: number
+  /** Valeur d'une seconde série, dessinée en points de fond (ex. la pesée brute sous la moyenne) */
+  secondary?: number
+}
+
+export interface Reference {
+  value: number
+  label: string
 }
 
 interface LineChartProps {
@@ -12,17 +19,29 @@ interface LineChartProps {
   formatDate: (date: Date) => string
   /** Index du point à mettre en avant (le record) */
   highlight?: number
+  /** Un point sur chaque valeur (sinon seulement le dernier, pour les séries denses) */
+  markers?: boolean
+  /** Noms des séries : affiche une légende et les deux valeurs dans l'info-bulle */
+  valueLabel?: string
+  secondaryLabel?: string
+  /** Traits horizontaux de repère (départ, objectif…) */
+  references?: Reference[]
 }
 
 const HEIGHT = 190
 const PAD = { top: 16, right: 14, bottom: 24, left: 40 }
 
-/** Courbe d'une seule série dans le temps, avec repère vertical au toucher. */
-export function LineChart({ points, format, formatDate, highlight }: LineChartProps) {
+/** Courbe dans le temps, avec repère vertical au toucher. */
+export function LineChart(props: LineChartProps) {
+  const { points, format, formatDate, highlight, markers = true, valueLabel, secondaryLabel, references = [] } = props
   const [ref, width] = useWidth<HTMLDivElement>()
   const [active, setActive] = useState<number | null>(null)
 
-  const values = points.map((p) => p.value)
+  const values = [
+    ...points.map((p) => p.value),
+    ...points.flatMap((p) => (p.secondary === undefined ? [] : [p.secondary])),
+    ...references.map((r) => r.value),
+  ]
   const ticks = niceTicks(Math.min(...values), Math.max(...values))
   const yMin = ticks[0]
   const yMax = ticks.at(-1)!
@@ -54,10 +73,20 @@ export function LineChart({ points, format, formatDate, highlight }: LineChartPr
   }
 
   const last = coords.length - 1
-  const shown = active ?? null
+  const showDot = (i: number) => markers || i === last || i === highlight || i === active
 
   return (
     <div className="chart" ref={ref} onPointerLeave={() => setActive(null)}>
+      {secondaryLabel && (
+        <div className="chart-legend" aria-hidden="true">
+          <span>
+            <span className="legend-line" /> {valueLabel}
+          </span>
+          <span>
+            <span className="legend-dot" /> {secondaryLabel}
+          </span>
+        </div>
+      )}
       {width > 0 && (
         <svg
           width={width}
@@ -73,6 +102,9 @@ export function LineChart({ points, format, formatDate, highlight }: LineChartPr
               </text>
             </g>
           ))}
+          {references.map((r) => (
+            <line key={r.label} className="chart-ref" x1={PAD.left} x2={width - PAD.right} y1={Math.round(y(r.value)) + 0.5} y2={Math.round(y(r.value)) + 0.5} />
+          ))}
           {points.length > 1 && (
             <>
               <text className="chart-tick" x={coords[0].x} y={HEIGHT - 6} textAnchor="start">
@@ -84,18 +116,31 @@ export function LineChart({ points, format, formatDate, highlight }: LineChartPr
             </>
           )}
           {area && <path className="chart-area" d={area} />}
-          {coords.length > 1 && <path className="chart-line" d={line} />}
-          {shown !== null && (
-            <line className="chart-crosshair" x1={coords[shown].x} x2={coords[shown].x} y1={PAD.top} y2={PAD.top + plotH} />
+          {points.map((p, i) =>
+            p.secondary === undefined ? null : (
+              <circle key={`s${i}`} className="chart-dot-secondary" cx={coords[i].x} cy={y(p.secondary)} r={3.5} />
+            ),
           )}
-          {coords.map((c, i) => (
-            <circle
-              key={i}
-              className={i === highlight ? 'chart-dot record' : 'chart-dot'}
-              cx={c.x}
-              cy={c.y}
-              r={i === highlight || i === shown ? 6 : 4}
-            />
+          {coords.length > 1 && <path className="chart-line" d={line} />}
+          {active !== null && (
+            <line className="chart-crosshair" x1={coords[active].x} x2={coords[active].x} y1={PAD.top} y2={PAD.top + plotH} />
+          )}
+          {coords.map((c, i) =>
+            showDot(i) ? (
+              <circle
+                key={i}
+                className={i === highlight ? 'chart-dot record' : 'chart-dot'}
+                cx={c.x}
+                cy={c.y}
+                r={i === highlight || i === active ? 6 : 4}
+              />
+            ) : null,
+          )}
+          {/* Libellés des repères par-dessus les données, détourés pour rester lisibles */}
+          {references.map((r) => (
+            <text key={r.label} className="chart-ref-label" x={width - PAD.right} y={y(r.value) - 5} textAnchor="end">
+              {r.label}
+            </text>
           ))}
           {/* Zone tactile : toute la surface du graphique */}
           <rect
@@ -113,13 +158,22 @@ export function LineChart({ points, format, formatDate, highlight }: LineChartPr
           />
         </svg>
       )}
-      {shown !== null && width > 0 && (
+      {active !== null && width > 0 && (
         <div
           className="chart-tooltip"
-          style={{ left: Math.min(Math.max(coords[shown].x, 64), width - 64), top: Math.max(0, coords[shown].y - 62) }}
+          style={{
+            left: Math.min(Math.max(coords[active].x, 72), width - 72),
+            top: Math.max(secondaryLabel ? 28 : 0, coords[active].y - (secondaryLabel ? 80 : 62)),
+          }}
         >
-          <strong>{format(points[shown].value)}</strong>
-          <span>{formatDate(points[shown].date)}</span>
+          <strong>{format(points[active].value)}</strong>
+          {valueLabel && <span>{valueLabel}</span>}
+          {points[active].secondary !== undefined && (
+            <span>
+              {secondaryLabel} : {format(points[active].secondary!)}
+            </span>
+          )}
+          <span>{formatDate(points[active].date)}</span>
         </div>
       )}
     </div>

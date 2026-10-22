@@ -13,6 +13,14 @@ export interface Settings {
   reminderSnoozedUntil: string | null
   /** Pas de charge par défaut des boutons + / − (kg). */
   weightStep: number
+  // Profil (Mon année)
+  age: number
+  heightCm: number
+  startWeight: number
+  /** AAAA-MM-JJ */
+  startDate: string
+  goal: string
+  targetWeight: number | null
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -21,6 +29,12 @@ export const DEFAULT_SETTINGS: Settings = {
   lastExportAt: null,
   reminderSnoozedUntil: null,
   weightStep: 2.5,
+  age: 21,
+  heightCm: 177,
+  startWeight: 74,
+  startDate: '2026-10-01',
+  goal: 'Stock et esthétique : prise de muscle propre, proportions équilibrées',
+  targetWeight: null,
 }
 
 export async function readSettings(database: MuscuDB = db): Promise<Settings> {

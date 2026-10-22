@@ -68,8 +68,14 @@ export interface Session {
   exerciseIds: string[]
 }
 
+export interface WeighIn {
+  /** AAAA-MM-JJ (heure locale) : une seule pesée par jour */
+  date: string
+  kg: number
+}
+
 /** Version actuelle du schéma (la plus haute déclarée ci-dessous). */
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 export class MuscuDB extends Dexie {
   settings!: EntityTable<SettingRow, 'key'>
@@ -77,6 +83,7 @@ export class MuscuDB extends Dexie {
   templates!: EntityTable<Template, 'id'>
   days!: EntityTable<Day, 'date'>
   sessions!: EntityTable<Session, 'id'>
+  weighIns!: EntityTable<WeighIn, 'date'>
 
   constructor(name = 'appli-muscu') {
     super(name)
@@ -97,6 +104,11 @@ export class MuscuDB extends Dexie {
         sessions: 'id, status, date, templateId, startedAt, *exerciseIds',
       })
       .upgrade(seedDefaults)
+
+    // Étape 4 : pesées (une par jour)
+    this.version(3).stores({
+      weighIns: 'date',
+    })
 
     // Base toute neuve : on la remplit directement avec les exercices par défaut
     this.on('populate', seedDefaults)

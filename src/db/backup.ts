@@ -26,6 +26,8 @@ const BACKUP_MIGRATIONS: Record<number, (tables: BackupTables) => BackupTables> 
     days: [],
     sessions: [],
   }),
+  // v2 → v3 : arrivée des pesées
+  2: (tables) => ({ ...tables, weighIns: [] }),
 }
 
 export async function exportBackup(database: MuscuDB, now = new Date()): Promise<BackupFile> {

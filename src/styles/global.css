@@ -17,6 +17,8 @@
   --chart: #c6f432;
   --chart-wash: rgba(198, 244, 50, 0.1);
   --chart-muted: #3a3f46;
+  /* Pesées brutes sous la moyenne : gris lisible (≥ 3:1, vérifié) */
+  --chart-secondary: #7a828c;
 
   --radius: 16px;
   --gutter: 16px;
@@ -45,6 +47,7 @@
   --chart: #5f9200;
   --chart-wash: rgba(95, 146, 0, 0.1);
   --chart-muted: #cfd4da;
+  --chart-secondary: #8a919a;
 
   color-scheme: light;
 }
@@ -1281,6 +1284,54 @@ p {
   stroke: var(--text);
 }
 
+.chart-dot-secondary {
+  fill: var(--chart-secondary);
+}
+
+.chart-ref {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  opacity: 0.6;
+}
+
+.chart-ref-label {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  paint-order: stroke;
+}
+
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.chart-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-line {
+  width: 16px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--chart);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--chart-secondary);
+}
+
 .chart-crosshair {
   stroke: var(--text-muted);
   stroke-width: 1;
@@ -1443,6 +1494,106 @@ p {
 
 .chart-card .hint {
   margin: 0;
+}
+
+/* ============ Mon année ============ */
+.weigh-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.weigh-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.weigh-title {
+  font-size: 17px;
+  font-weight: 650;
+}
+
+.weigh-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-text);
+  font-weight: 650;
+}
+
+.weigh-saved svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 3;
+}
+
+.weigh-card .stepper-row {
+  grid-template-columns: 56px 1fr 56px;
+}
+
+.weigh-card .stepper-btn {
+  height: 56px;
+}
+
+.weigh-card .stepper-value {
+  font-size: 32px;
+}
+
+.weigh-value {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-value.on-track {
+  color: var(--accent-text);
+}
+
+.weight-chart {
+  margin-top: 8px;
+}
+
+.show-all {
+  margin-top: 4px;
+}
+
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profile-line {
+  font-weight: 600;
+}
+
+.profile-goal {
+  font-size: 15px;
+}
+
+.protein {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.protein-value {
+  font-weight: 650;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 10px;
+}
+
+.goal-input {
+  resize: none;
+  line-height: 1.35;
 }
 
 /* ============ Modifier une séance ============ */
