@@ -4,7 +4,10 @@ import { registerSW } from 'virtual:pwa-register'
 import App from './App'
 import { initSettings } from './db/settings'
 import { requestPersistentStorage } from './lib/storage'
+import { fixStandaloneHeight } from './lib/viewport'
 import './styles/global.css'
+
+fixStandaloneHeight()
 
 // Service worker : mise en cache hors ligne + mise à jour automatique.
 // On vérifie s'il existe une nouvelle version à chaque retour dans l'appli et toutes les heures.
