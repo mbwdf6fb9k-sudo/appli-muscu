@@ -34,7 +34,7 @@ async function computeHighlights(session: Session): Promise<Highlights> {
   const result: Highlights = { records: [], firstTimes: [] }
   for (const entry of session.exercises) {
     if (entry.sets.length === 0) continue
-    const before = await previousSets(entry.exerciseId, session.startedAt)
+    const before = await previousSets(entry.exerciseId, session.startedAt, entry.type)
     if (before.length === 0) {
       result.firstTimes.push(entry.exerciseId)
       continue

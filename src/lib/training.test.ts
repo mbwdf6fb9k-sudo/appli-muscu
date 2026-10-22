@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Session, SetEntry } from '../db/database'
 import { formatSetsLine, formatSeconds, parseNumber } from './format'
 import { prefillNextSet } from './prefill'
-import { computeBests, epley1RM, findBrokenRecords } from './records'
+import { computeBests, epley1RM, findBrokenRecords, liveRecords } from './records'
 import { sessionStats } from './sessionStats'
 
 const at = '2026-10-22T18:00:00.000Z'
@@ -55,6 +55,29 @@ describe('records', () => {
 
   it('égaler un record ne compte pas', () => {
     expect(findBrokenRecords('weight', [w(10, 60)], [w(10, 60)])).toEqual([])
+  })
+})
+
+describe('records en direct (pendant la séance)', () => {
+  it('chaque série est comparée à l’historique et aux séries précédentes du jour', () => {
+    const records = liveRecords('weight', [w(10, 60)], [w(10, 60), w(8, 65), w(8, 65), w(6, 70)])
+    // 60 : égal (rien) · 65 : record · 65 encore : égal à la série d'avant (rien) · 70 : nouveau record
+    expect([...records.keys()]).toEqual([1, 3])
+    expect(records.get(3)?.find((r) => r.kind === 'maxKg')).toEqual({ kind: 'maxKg', value: 70, previous: 65 })
+  })
+
+  it('rien la première fois qu’on fait l’exercice, même si la 2e série est plus lourde', () => {
+    expect(liveRecords('weight', [], [w(10, 60), w(10, 80)]).size).toBe(0)
+  })
+
+  it('poids du corps et gainage', () => {
+    expect([...liveRecords('bodyweight', [w(10, 0)], [w(9, 0), w(11, 0)]).keys()]).toEqual([1])
+    expect([...liveRecords('duration', [d(60)], [d(45), d(75)]).keys()]).toEqual([1])
+  })
+
+  it('corriger une série recalcule les records', () => {
+    expect(liveRecords('weight', [w(10, 60)], [w(10, 62.5)]).size).toBe(1)
+    expect(liveRecords('weight', [w(10, 60)], [w(10, 57.5)]).size).toBe(0)
   })
 })
 

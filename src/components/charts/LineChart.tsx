@@ -121,7 +121,8 @@ export function LineChart(props: LineChartProps) {
               <circle key={`s${i}`} className="chart-dot-secondary" cx={coords[i].x} cy={y(p.secondary)} r={3.5} />
             ),
           )}
-          {coords.length > 1 && <path className="chart-line" d={line} />}
+          {/* pathLength 1 : permet d'animer le tracé de la courbe à l'ouverture */}
+          {coords.length > 1 && <path className="chart-line" d={line} pathLength={1} />}
           {active !== null && (
             <line className="chart-crosshair" x1={coords[active].x} x2={coords[active].x} y1={PAD.top} y2={PAD.top + plotH} />
           )}

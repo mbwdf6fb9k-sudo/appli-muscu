@@ -1,9 +1,12 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
 import type { Exercise, Session, SessionExercise } from '../db/database'
-import { addSet, deleteSet, setNote, updateSet, useLastPerformance } from '../db/sessions'
+import { addSet, deleteSet, previousSets, setNote, updateSet, useLastPerformance } from '../db/sessions'
 import { formatSet, formatSetsLine, formatShortDate } from '../lib/format'
+import { haptic } from '../lib/haptics'
 import { prefillNextSet, type SetValues } from '../lib/prefill'
-import { CheckIcon, ChevronDownIcon, CopyIcon } from './icons'
+import { liveRecords, type BrokenRecord } from '../lib/records'
+import { CheckIcon, ChevronDownIcon, CopyIcon, TrophyIcon } from './icons'
 import { SetEditSheet, SetInputs, withoutTime } from './SetEditSheet'
 
 interface ExerciseCardProps {
@@ -14,9 +17,12 @@ interface ExerciseCardProps {
   open: boolean
   onToggle: () => void
   defaultStep: number
+  /** Appelé quand une série qui vient d'être validée bat un record */
+  onRecord: (exerciseName: string, records: BrokenRecord[]) => void
 }
 
-export function ExerciseCard({ session, index, entry, exercise, open, onToggle, defaultStep }: ExerciseCardProps) {
+export function ExerciseCard(props: ExerciseCardProps) {
+  const { session, index, entry, exercise, open, onToggle, defaultStep, onRecord } = props
   const name = exercise?.name ?? 'Exercice supprimé'
   const count = entry.sets.length
 
@@ -38,14 +44,46 @@ export function ExerciseCard({ session, index, entry, exercise, open, onToggle, 
           index={index}
           entry={entry}
           step={exercise?.step ?? defaultStep}
+          onRecord={(records) => onRecord(name, records)}
         />
       )}
     </section>
   )
 }
 
-function ExerciseBody({ session, index, entry, step }: { session: Session; index: number; entry: SessionExercise; step: number }) {
+interface ExerciseBodyProps {
+  session: Session
+  index: number
+  entry: SessionExercise
+  step: number
+  onRecord: (records: BrokenRecord[]) => void
+}
+
+function ExerciseBody({ session, index, entry, step, onRecord }: ExerciseBodyProps) {
   const last = useLastPerformance(entry.exerciseId, session.startedAt)
+  const history = useLiveQuery(
+    () => previousSets(entry.exerciseId, session.startedAt, entry.type),
+    [entry.exerciseId, session.startedAt, entry.type],
+  )
+  // Séries record (recalculées si une série est corrigée ou supprimée)
+  const records = liveRecords(entry.type, history ?? [], entry.sets)
+
+  // Célébration : seulement pour la série qu'on vient de valider, pas au chargement ni à la correction
+  const celebrateAt = useRef<number | null>(null)
+  useEffect(() => {
+    const at = celebrateAt.current
+    if (at === null || history === undefined || entry.sets.length <= at) return
+    celebrateAt.current = null
+    const broken = records.get(at)
+    if (broken) {
+      haptic()
+      onRecord(broken)
+    }
+  })
+  const add = (values: SetValues) => {
+    celebrateAt.current = entry.sets.length
+    void addSet(session.id, index, values)
+  }
   const lastSets = last && last.type === entry.type ? last.sets : []
   const [editing, setEditing] = useState<number | null>(null)
 
@@ -76,9 +114,14 @@ function ExerciseBody({ session, index, entry, step }: { session: Session; index
         <ol className="set-list">
           {entry.sets.map((set, i) => (
             <li key={set.at + i}>
-              <button className="set-chip" onClick={() => setEditing(i)}>
+              <button className={records.has(i) ? 'set-chip record' : 'set-chip'} onClick={() => setEditing(i)}>
                 <span className="set-num">{i + 1}</span>
                 {formatSet(entry.type, set)}
+                {records.has(i) && (
+                  <span className="set-trophy" aria-label="Record">
+                    <TrophyIcon />
+                  </span>
+                )}
               </button>
             </li>
           ))}
@@ -90,7 +133,7 @@ function ExerciseBody({ session, index, entry, step }: { session: Session; index
       <div className="set-actions">
         <button
           className="btn btn-primary"
-          onClick={() => addSet(session.id, index, draft.values)}
+          onClick={() => add(draft.values)}
           aria-label="Valider la série"
         >
           <CheckIcon /> Valider
@@ -98,7 +141,7 @@ function ExerciseBody({ session, index, entry, step }: { session: Session; index
         <button
           className="btn btn-secondary btn-duplicate"
           disabled={!lastToday}
-          onClick={() => lastToday && addSet(session.id, index, withoutTime(lastToday))}
+          onClick={() => lastToday && add(withoutTime(lastToday))}
           aria-label="Dupliquer la série précédente"
         >
           <CopyIcon /> Dupliquer

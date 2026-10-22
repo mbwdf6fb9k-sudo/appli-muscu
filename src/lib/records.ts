@@ -94,3 +94,18 @@ export function findBrokenRecords(type: ExerciseType, previousSets: SetEntry[], 
   }
   return broken
 }
+
+/**
+ * Séries du jour qui battent un record, au moment où elles ont été faites : chacune est comparée à
+ * l'historique ET aux séries précédentes de la séance (deux records dans la même séance = deux fois).
+ * Rien la première fois qu'on fait l'exercice.
+ */
+export function liveRecords(type: ExerciseType, history: SetEntry[], today: SetEntry[]): Map<number, BrokenRecord[]> {
+  const records = new Map<number, BrokenRecord[]>()
+  if (history.length === 0) return records
+  today.forEach((set, i) => {
+    const broken = findBrokenRecords(type, [...history, ...today.slice(0, i)], [set])
+    if (broken.length > 0) records.set(i, broken)
+  })
+  return records
+}

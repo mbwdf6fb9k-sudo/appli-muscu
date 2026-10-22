@@ -64,14 +64,16 @@ export function useLastPerformance(exerciseId: string, before?: string): Perform
   return useLiveQuery(() => lastPerformance(exerciseId, before), [exerciseId, before])
 }
 
-/** Toutes les séries passées d'un exercice (séances terminées avant `before`). */
-export async function previousSets(exerciseId: string, before: string): Promise<SetEntry[]> {
+/** Toutes les séries passées d'un exercice (séances terminées avant `before`), du même type si précisé. */
+export async function previousSets(exerciseId: string, before: string, type?: ExerciseType): Promise<SetEntry[]> {
   const sessions = await db.sessions
     .where('exerciseIds')
     .equals(exerciseId)
     .filter((s) => s.status === 'done' && s.startedAt < before)
     .toArray()
-  return sessions.flatMap((s) => s.exercises.filter((e) => e.exerciseId === exerciseId).flatMap((e) => e.sets))
+  return sessions.flatMap((s) =>
+    s.exercises.filter((e) => e.exerciseId === exerciseId && (!type || e.type === type)).flatMap((e) => e.sets),
+  )
 }
 
 // ---------- Écriture ----------

@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { EditableRow } from '../components/EditableRow'
 import { ExerciseCard } from '../components/ExerciseCard'
 import { ExercisePicker } from '../components/ExercisePicker'
+import { RecordToast, type RecordCelebration } from '../components/RecordToast'
 import { ChevronLeftIcon, PlusIcon } from '../components/icons'
 import { Screen } from '../components/Screen'
 import { Sheet } from '../components/Sheet'
@@ -62,6 +63,8 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
   const [pickerOpen, setPickerOpen] = useState(false)
   const [askTemplate, setAskTemplate] = useState(false)
   const [finishOpen, setFinishOpen] = useState(false)
+  const [celebration, setCelebration] = useState<RecordCelebration | null>(null)
+  const closeCelebration = useCallback(() => setCelebration(null), [])
 
   const setOpenId = (id: string | null) => {
     setOpenIdState(id)
@@ -145,6 +148,7 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
               open={currentOpen === entry.exerciseId}
               onToggle={() => setOpenId(currentOpen === entry.exerciseId ? null : entry.exerciseId)}
               defaultStep={settings.weightStep}
+              onRecord={(exerciseName, records) => setCelebration({ id: Date.now(), exerciseName, records })}
             />
           ))}
           {session.exercises.length === 0 && (
@@ -174,6 +178,8 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
           </>
         )}
       </div>
+
+      <RecordToast celebration={celebration} onClose={closeCelebration} />
 
       <ExercisePicker
         open={pickerOpen}
