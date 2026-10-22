@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { ExerciseType, Session, SetEntry } from '../db/database'
-import { exerciseHistory, exerciseRecords, exerciseSummaries, recordSessionIds, startOfWeek, weeklyCounts } from './progress'
+import {
+  exerciseHistory,
+  exerciseRecords,
+  exerciseSummaries,
+  recordSessionIds,
+  startOfWeek,
+  weeklyAverage,
+  weeklyCounts,
+} from './progress'
 
 const set = (reps: number, kg: number): SetEntry => ({ reps, kg, at: '' })
 
@@ -41,6 +49,31 @@ describe('séances par semaine', () => {
     expect(weeks.at(-2)?.count).toBe(2)
     expect(weeks.reduce((n, w) => n + w.count, 0)).toBe(3)
     expect(weeks[0].start.getDay()).toBe(1)
+  })
+})
+
+describe('moyenne par semaine', () => {
+  const now = new Date(2026, 9, 22, 12) // jeudi 22 octobre
+
+  it('pas de moyenne la première semaine', () => {
+    expect(weeklyAverage([session('a', new Date(2026, 9, 21), [])], now)).toBeNull()
+  })
+
+  it('calculée depuis la première séance, pas sur 12 semaines', () => {
+    const sessions = [
+      session('a', new Date(2026, 9, 8), []), // semaine du 5 oct.
+      session('b', new Date(2026, 9, 14), []), // semaine du 12 oct.
+      session('c', new Date(2026, 9, 16), []),
+      session('d', new Date(2026, 9, 21), []), // semaine en cours
+    ]
+    expect(weeklyAverage(sessions, now)).toEqual({ average: 4 / 3, weeks: 3 })
+  })
+
+  it('plafonnée à 12 semaines', () => {
+    expect(weeklyAverage([session('a', new Date(2025, 0, 6), []), session('b', new Date(2026, 9, 20), [])], now)).toEqual({
+      average: 1 / 12,
+      weeks: 12,
+    })
   })
 })
 

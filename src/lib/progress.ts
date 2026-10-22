@@ -31,6 +31,20 @@ export function weeklyCounts(sessions: Session[], now = new Date(), weeks = 12):
   return result
 }
 
+/**
+ * Moyenne de séances par semaine depuis la première séance (au plus sur `weeks` semaines).
+ * null tant qu'on n'a pas au moins 2 semaines d'historique : la moyenne n'aurait pas de sens.
+ */
+export function weeklyAverage(sessions: Session[], now = new Date(), weeks = 12): { average: number; weeks: number } | null {
+  const done = sessions.filter((s) => s.status === 'done')
+  if (done.length === 0) return null
+  const first = startOfWeek(new Date(done.reduce((min, s) => (s.startedAt < min ? s.startedAt : min), done[0].startedAt)))
+  const span = Math.min(weeks, Math.round((startOfWeek(now).getTime() - first.getTime()) / (7 * 86_400_000)) + 1)
+  if (span < 2) return null
+  const total = weeklyCounts(done, now, span).reduce((n, w) => n + w.count, 0)
+  return { average: total / span, weeks: span }
+}
+
 export interface HistoryEntry {
   sessionId: string
   startedAt: string

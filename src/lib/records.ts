@@ -36,7 +36,8 @@ export function formatBests(type: ExerciseType, bests: Bests): string {
     if (bests.maxLest) parts.push(`lest ${formatNumber(bests.maxLest)} kg`)
     return parts.join(' · ')
   }
-  const parts = bests.best1RM ? [`1RM ${formatNumber(Math.round(bests.best1RM))} kg`] : []
+  // Même arrondi que la fiche de l'exercice (formatRecordValue) : au dixième
+  const parts = bests.best1RM ? [`1RM ${formatNumber(Math.round(bests.best1RM * 10) / 10)} kg`] : []
   if (bests.maxKg) parts.push(`max ${formatNumber(bests.maxKg)} kg`)
   return parts.join(' · ')
 }

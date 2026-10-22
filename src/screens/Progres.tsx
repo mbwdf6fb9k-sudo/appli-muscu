@@ -10,7 +10,7 @@ import { TEMPLATE_NAMES } from '../db/seed'
 import { useDoneSessions } from '../db/sessions'
 import { daysSince, formatDaysAgo } from '../lib/dates'
 import { formatDuration, formatNumber, formatShortDate } from '../lib/format'
-import { exerciseSummaries, recordSessionIds, weeklyCounts } from '../lib/progress'
+import { exerciseSummaries, recordSessionIds, weeklyAverage, weeklyCounts } from '../lib/progress'
 import { formatBests } from '../lib/records'
 import { sessionStats } from '../lib/sessionStats'
 import { useNow } from '../lib/useNow'
@@ -58,7 +58,7 @@ export function Progres() {
 
   const weeks = weeklyCounts(sessions, now)
   const thisWeek = weeks.at(-1)!.count
-  const average = weeks.reduce((n, w) => n + w.count, 0) / weeks.length
+  const average = weeklyAverage(sessions, now)
 
   return (
     <Screen title="Progrès" trailing={<SettingsLink />}>
@@ -68,11 +68,13 @@ export function Progres() {
             <span className="week-value">{thisWeek}</span>
             <span className="week-label">{thisWeek > 1 ? 'séances cette semaine' : 'séance cette semaine'}</span>
           </div>
-          <span className="muted small week-average">
-            moyenne {formatNumber(Math.round(average * 10) / 10)} / semaine
-            <br />
-            sur 12 semaines
-          </span>
+          {average && (
+            <span className="muted small week-average">
+              moyenne {formatNumber(Math.round(average.average * 10) / 10)} / semaine
+              <br />
+              sur {average.weeks} semaines
+            </span>
+          )}
         </div>
         <BarChart
           bars={weeks.map((w) => ({
