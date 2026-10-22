@@ -1,0 +1,459 @@
+/* ============ Thème ============ */
+:root {
+  /* Couleur d'accent unique de l'appli (vert citron) */
+  --accent: #c6f432;
+  --on-accent: #111400;
+
+  --bg: #0e0f11;
+  --surface: #17191c;
+  --surface-2: #22252a;
+  --border: #2b2f35;
+  --text: #f3f5f6;
+  --text-muted: #959ca5;
+  --accent-text: var(--accent);
+  --danger: #ff6b5e;
+  --tabbar-bg: rgba(14, 15, 17, 0.86);
+
+  --radius: 16px;
+  --gutter: 16px;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  color-scheme: dark;
+}
+
+:root[data-theme='light'] {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --surface-2: #eceef1;
+  --border: #dde0e5;
+  --text: #121418;
+  --text-muted: #5d6570;
+  --accent-text: #4a7300;
+  --danger: #d33a2c;
+  --tabbar-bg: rgba(255, 255, 255, 0.88);
+
+  color-scheme: light;
+}
+
+/* ============ Base ============ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  /* La page entière ne bouge jamais : seul le contenu de l'écran défile */
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.4;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+  touch-action: manipulation;
+}
+
+/* ≥ 16 px : évite le zoom automatique de Safari sur les champs */
+input,
+select,
+textarea {
+  font-size: max(16px, 1em);
+}
+
+p {
+  margin: 0;
+}
+
+/* ============ Structure ============ */
+.app {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  animation: screen-in 0.2s var(--ease);
+}
+
+.screen-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 56px;
+  padding: calc(var(--safe-top) + 8px) calc(var(--safe-right) + 8px) 8px calc(var(--safe-left) + var(--gutter));
+}
+
+.screen-header:has(.icon-btn-back) {
+  padding-left: calc(var(--safe-left) + 4px);
+}
+
+.screen-heading {
+  flex: 1;
+  min-width: 0;
+}
+
+.screen-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.screen-subtitle {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+.screen-subtitle::first-letter {
+  text-transform: uppercase;
+}
+
+.screen-content {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px calc(var(--safe-right) + var(--gutter)) 32px calc(var(--safe-left) + var(--gutter));
+}
+
+/* ============ Barre d'onglets ============ */
+.tabbar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 0 var(--safe-right) var(--safe-bottom) var(--safe-left);
+  background: var(--tabbar-bg);
+  border-top: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 56px;
+  padding-top: 4px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: color 0.15s var(--ease);
+}
+
+.tab svg {
+  transition: transform 0.15s var(--ease);
+}
+
+.tab:active svg {
+  transform: scale(0.88);
+}
+
+.tab.active {
+  color: var(--accent-text);
+}
+
+/* ============ Boutons ============ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: 14px;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    transform 0.12s var(--ease),
+    opacity 0.12s var(--ease);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.btn-small {
+  width: auto;
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 15px;
+  border-radius: 12px;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s var(--ease);
+}
+
+.icon-btn:active {
+  background: var(--surface-2);
+}
+
+/* ============ Cartes et sections ============ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding-block: 8px;
+}
+
+.section-title {
+  margin: 28px 4px 8px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.section-title:first-child {
+  margin-top: 8px;
+}
+
+.card-lead {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.small {
+  font-size: 14px;
+}
+
+.hint {
+  margin: 8px 4px 0;
+}
+
+.feedback {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--accent-text);
+  animation: fade-in 0.2s var(--ease);
+}
+
+.feedback-error {
+  color: var(--danger);
+}
+
+/* Choix à deux options (thème) */
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-2);
+  border-radius: 13px;
+}
+
+.segmented button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s var(--ease),
+    color 0.2s var(--ease);
+}
+
+.segmented button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+
+/* ============ Bandeau de rappel ============ */
+.banner {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  animation: fade-in 0.25s var(--ease);
+}
+
+.banner-icon {
+  flex: none;
+  color: var(--accent-text);
+  padding-top: 1px;
+}
+
+.banner-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.banner-text {
+  font-size: 15px;
+}
+
+.banner-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* ============ Écrans à venir ============ */
+.coming-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 56px 24px;
+}
+
+.coming-soon-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--accent-text);
+}
+
+.coming-soon-icon svg {
+  width: 30px;
+  height: 30px;
+}
+
+.coming-soon-title {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.coming-soon-text {
+  max-width: 300px;
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 15px;
+}
+
+/* ============ Animations ============ */
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
