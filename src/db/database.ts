@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable, type Transaction } from 'dexie'
-import { DEFAULT_EXERCISES, DEFAULT_TEMPLATES } from './seed'
+import { DEFAULT_EXERCISES, DEFAULT_SUPPLEMENTS, DEFAULT_TEMPLATES } from './seed'
 
 export interface SettingRow {
   key: string
@@ -74,8 +74,34 @@ export interface WeighIn {
   kg: number
 }
 
+export type SupplementMoment = 'breakfast' | 'lunch' | 'pre45' | 'pre20' | 'during' | 'after' | 'dinner' | 'bedtime'
+
+export interface Supplement {
+  id: string
+  name: string
+  /** « 3 à 5 g » */
+  dose?: string
+  /** Rappel affiché sous le complément */
+  note?: string
+  /** Moment de prise en jour d'entraînement (null = pas ce jour-là) */
+  training: SupplementMoment | null
+  /** Moment de prise en jour de repos (null = pas ce jour-là) */
+  rest: SupplementMoment | null
+  /** Avertissement si la séance est tard le soir */
+  caffeine?: boolean
+  order: number
+}
+
+export interface Intake {
+  /** « AAAA-MM-JJ|idDuComplément » : une case par complément et par jour */
+  id: string
+  date: string
+  supplementId: string
+  at: string
+}
+
 /** Version actuelle du schéma (la plus haute déclarée ci-dessous). */
-export const SCHEMA_VERSION = 3
+export const SCHEMA_VERSION = 4
 
 export class MuscuDB extends Dexie {
   settings!: EntityTable<SettingRow, 'key'>
@@ -84,6 +110,8 @@ export class MuscuDB extends Dexie {
   days!: EntityTable<Day, 'date'>
   sessions!: EntityTable<Session, 'id'>
   weighIns!: EntityTable<WeighIn, 'date'>
+  supplements!: EntityTable<Supplement, 'id'>
+  intakes!: EntityTable<Intake, 'id'>
 
   constructor(name = 'appli-muscu') {
     super(name)
@@ -110,14 +138,29 @@ export class MuscuDB extends Dexie {
       weighIns: 'date',
     })
 
-    // Base toute neuve : on la remplit directement avec les exercices par défaut
-    this.on('populate', seedDefaults)
+    // Étape 5 : compléments et prises cochées
+    this.version(4)
+      .stores({
+        supplements: 'id, order',
+        intakes: 'id, date, supplementId',
+      })
+      .upgrade(seedSupplements)
+
+    // Base toute neuve : on la remplit directement avec les exercices et compléments par défaut
+    this.on('populate', async (tx) => {
+      await seedDefaults(tx)
+      await seedSupplements(tx)
+    })
   }
 }
 
 async function seedDefaults(tx: Transaction): Promise<void> {
   await tx.table('exercises').bulkPut(structuredClone(DEFAULT_EXERCISES))
   await tx.table('templates').bulkPut(structuredClone(DEFAULT_TEMPLATES))
+}
+
+async function seedSupplements(tx: Transaction): Promise<void> {
+  await tx.table('supplements').bulkPut(structuredClone(DEFAULT_SUPPLEMENTS))
 }
 
 export const db = new MuscuDB()

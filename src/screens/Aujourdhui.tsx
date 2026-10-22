@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BackupBanner } from '../components/BackupBanner'
-import { CheckIcon, ChevronRightIcon, CloseIcon } from '../components/icons'
+import { CheckIcon, ChevronRightIcon } from '../components/icons'
+import { PlannedTimeField } from '../components/PlannedTimeField'
 import { Screen, SettingsLink } from '../components/Screen'
 import type { DayChoice, Session } from '../db/database'
-import { setDayChoice, setPlannedTime, useDay } from '../db/days'
+import { setDayChoice, useDay } from '../db/days'
 import { SESSION_TEMPLATE_IDS, TEMPLATE_NAMES } from '../db/seed'
 import { startSession, useActiveSession, useDoneSessionsOn, useLastDoneDates } from '../db/sessions'
 import { daysSince, formatDaysAgo, formatLongDate, localDateStamp } from '../lib/dates'
@@ -75,30 +76,7 @@ export function Aujourdhui() {
 
           {choice && choice !== 'repos' && (
             <div className="today-start">
-              <div className="card time-field">
-                <label htmlFor="planned-time">J’y vais vers…</label>
-                <div className="time-field-input">
-                  <span className="time-input-wrap">
-                    <input
-                      id="planned-time"
-                      type="time"
-                      value={day?.plannedTime ?? ''}
-                      onChange={(e) => setPlannedTime(today, e.target.value || null)}
-                    />
-                    {/* Un champ heure vide n'affiche rien sur iPhone */}
-                    {!day?.plannedTime && <span className="time-placeholder">Choisir</span>}
-                  </span>
-                  {day?.plannedTime && (
-                    <button
-                      className="icon-btn icon-btn-small"
-                      aria-label="Effacer l’heure"
-                      onClick={() => setPlannedTime(today, null)}
-                    >
-                      <CloseIcon />
-                    </button>
-                  )}
-                </div>
-              </div>
+              <PlannedTimeField date={today} value={day?.plannedTime} />
               <button className="btn btn-primary btn-large" onClick={handleStart} disabled={starting}>
                 Commencer la séance
               </button>

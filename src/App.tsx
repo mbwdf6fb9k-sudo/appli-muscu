@@ -6,6 +6,7 @@ import { useSettings } from './db/settings'
 import { useApplyTheme } from './lib/theme'
 import { Aujourdhui } from './screens/Aujourdhui'
 import { Complements } from './screens/Complements'
+import { ComplementsListe } from './screens/ComplementsListe'
 import { ExerciceProgres } from './screens/ExerciceProgres'
 import { Exercices } from './screens/Exercices'
 import { ModeleEdition } from './screens/ModeleEdition'
@@ -52,6 +53,7 @@ function Layout() {
         <Route path="/progres/exercice/:id" element={<ExerciceProgres />} />
         <Route path="/annee" element={<MonAnnee />} />
         <Route path="/complements" element={<Complements />} />
+        <Route path="/complements/liste" element={<ComplementsListe />} />
         <Route path="/reglages" element={<Reglages />} />
         <Route path="/reglages/exercices" element={<Exercices />} />
         <Route path="/reglages/modeles/:id" element={<ModeleEdition />} />

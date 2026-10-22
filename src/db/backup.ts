@@ -1,5 +1,5 @@
 import { SCHEMA_VERSION, type MuscuDB } from './database'
-import { DEFAULT_EXERCISES, DEFAULT_TEMPLATES } from './seed'
+import { DEFAULT_EXERCISES, DEFAULT_SUPPLEMENTS, DEFAULT_TEMPLATES } from './seed'
 
 export const BACKUP_APP_ID = 'appli-muscu'
 
@@ -28,6 +28,8 @@ const BACKUP_MIGRATIONS: Record<number, (tables: BackupTables) => BackupTables> 
   }),
   // v2 → v3 : arrivée des pesées
   2: (tables) => ({ ...tables, weighIns: [] }),
+  // v3 → v4 : arrivée des compléments et des prises cochées
+  3: (tables) => ({ ...tables, supplements: structuredClone(DEFAULT_SUPPLEMENTS), intakes: [] }),
 }
 
 export async function exportBackup(database: MuscuDB, now = new Date()): Promise<BackupFile> {

@@ -1,4 +1,4 @@
-import type { Exercise, ExerciseType, SessionTemplateId, Template, TemplateId } from './database'
+import type { Exercise, ExerciseType, SessionTemplateId, Supplement, Template, TemplateId } from './database'
 
 export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   'dos-biceps': 'Dos-Biceps',
@@ -84,3 +84,24 @@ export const DEFAULT_TEMPLATES: Template[] = (Object.keys(LISTS) as TemplateId[]
   name: TEMPLATE_NAMES[id],
   exerciseIds: LISTS[id].map(slugify),
 }))
+
+/** Compléments du cahier des charges, avec leur moment en jour d'entraînement et en jour de repos. */
+export const DEFAULT_SUPPLEMENTS: Supplement[] = (
+  [
+    { name: 'Bion 3', training: 'breakfast', rest: 'breakfast' },
+    { name: 'Vitamine D3', training: 'lunch', rest: 'lunch' },
+    { name: 'Oméga 3', training: 'lunch', rest: 'lunch' },
+    { name: 'Collagène + vitamine C', training: 'pre45', rest: 'breakfast' },
+    { name: 'Préworkout', training: 'pre20', rest: null, caffeine: true },
+    { name: 'BCAA', training: 'during', rest: null },
+    {
+      name: 'Créatine',
+      dose: '3 à 5 g',
+      note: 'Tous les jours, même au repos : c’est la régularité qui compte.',
+      training: 'after',
+      rest: 'lunch',
+    },
+    { name: 'Magnésium bisglycinate', training: 'bedtime', rest: 'bedtime' },
+    { name: 'Ashwagandha KSM-66', training: 'bedtime', rest: 'bedtime' },
+  ] satisfies Omit<Supplement, 'id' | 'order'>[]
+).map((s, order) => ({ ...s, id: slugify(s.name), order }))
