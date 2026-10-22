@@ -4,7 +4,11 @@ import { db } from './database'
 import {
   addAbs,
   addSet,
+  changeSessionDate,
+  deleteSession,
+  deleteSet,
   finishSession,
+  updateSet,
   lastPerformance,
   moveExercise,
   previousSets,
@@ -53,6 +57,34 @@ describe('séances', () => {
     expect(done?.status).toBe('done')
     expect(done?.exercises.map((e) => e.exerciseId)).toEqual(['elevations-laterales'])
     expect(done?.exerciseIds).toEqual(['elevations-laterales'])
+  })
+
+  it('modifier une séance terminée : série, date, suppression', async () => {
+    const session = await startSession('jambes', new Date(2026, 9, 20, 18, 30))
+    await addSet(session.id, 0, { reps: 10, kg: 80 })
+    await addSet(session.id, 1, { reps: 12, kg: 150 })
+    await finishSession(session.id, new Date(2026, 9, 20, 19, 40))
+
+    // Corriger une série
+    await updateSet(session.id, 0, 0, { reps: 10, kg: 85 })
+    expect((await db.sessions.get(session.id))?.exercises[0].sets[0].kg).toBe(85)
+
+    // Supprimer la seule série d'un exercice le retire de la séance
+    await deleteSet(session.id, 1, 0)
+    const edited = (await db.sessions.get(session.id))!
+    expect(edited.exercises.map((e) => e.exerciseId)).toEqual(['squat'])
+    expect(edited.exerciseIds).toEqual(['squat'])
+
+    // Changer la date garde l'heure et la durée
+    await changeSessionDate(session.id, '2026-10-18')
+    const moved = (await db.sessions.get(session.id))!
+    expect(moved.date).toBe('2026-10-18')
+    expect(new Date(moved.startedAt).getHours()).toBe(18)
+    expect(new Date(moved.startedAt).getDate()).toBe(18)
+    expect(new Date(moved.endedAt!).getTime() - new Date(moved.startedAt).getTime()).toBe(70 * 60_000)
+
+    await deleteSession(session.id)
+    expect(await db.sessions.get(session.id)).toBeUndefined()
   })
 
   it('+ Abdos et réordonner ; les abdos ne vont pas dans le modèle', async () => {

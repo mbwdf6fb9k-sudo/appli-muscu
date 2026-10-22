@@ -13,7 +13,7 @@ export function TabBar() {
   return (
     <nav className="tabbar" aria-label="Navigation principale">
       {TABS.map((tab) => (
-        <NavLink key={tab.to} to={tab.to} end className="tab">
+        <NavLink key={tab.to} to={tab.to} end={tab.to === '/'} className="tab">
           {tab.icon}
           <span>{tab.label}</span>
         </NavLink>

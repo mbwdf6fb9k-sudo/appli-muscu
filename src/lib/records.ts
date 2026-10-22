@@ -1,4 +1,5 @@
 import type { ExerciseType, SetEntry } from '../db/database'
+import { formatNumber, formatSeconds } from './format'
 
 /** 1RM estimé (formule d'Epley), seulement pour les séries de 1 à 12 reps avec une charge. */
 export function epley1RM(kg: number | undefined, reps: number | undefined): number | undefined {
@@ -17,6 +18,27 @@ export const RECORD_LABELS: Record<RecordKind, string> = {
   maxReps: 'Reps max',
   maxLest: 'Lest max',
   maxSeconds: 'Meilleure durée',
+}
+
+/** « 93,3 kg », « 12 reps », « 1 min 05 », « poids du corps » */
+export function formatRecordValue(kind: RecordKind, value: number): string {
+  if (kind === 'maxReps') return `${value} reps`
+  if (kind === 'maxSeconds') return formatSeconds(value)
+  if (kind === 'maxLest' && value === 0) return 'poids du corps'
+  return `${formatNumber(Math.round(value * 10) / 10)} kg`
+}
+
+/** Résumé court des meilleures valeurs : « 1RM 93 kg · max 70 kg » */
+export function formatBests(type: ExerciseType, bests: Bests): string {
+  if (type === 'duration') return bests.maxSeconds ? `record ${formatSeconds(bests.maxSeconds)}` : ''
+  if (type === 'bodyweight') {
+    const parts = bests.maxReps ? [`${bests.maxReps} reps max`] : []
+    if (bests.maxLest) parts.push(`lest ${formatNumber(bests.maxLest)} kg`)
+    return parts.join(' · ')
+  }
+  const parts = bests.best1RM ? [`1RM ${formatNumber(Math.round(bests.best1RM))} kg`] : []
+  if (bests.maxKg) parts.push(`max ${formatNumber(bests.maxKg)} kg`)
+  return parts.join(' · ')
 }
 
 /** Records suivis selon le type d'exercice. */

@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import type { Exercise, ExerciseType, Session, SessionExercise, SetEntry } from '../db/database'
+import type { Exercise, Session, SessionExercise } from '../db/database'
 import { addSet, deleteSet, setNote, updateSet, useLastPerformance } from '../db/sessions'
 import { formatSet, formatSetsLine, formatShortDate } from '../lib/format'
 import { prefillNextSet, type SetValues } from '../lib/prefill'
 import { CheckIcon, ChevronDownIcon, CopyIcon } from './icons'
-import { Sheet } from './Sheet'
-import { Stepper } from './Stepper'
+import { SetEditSheet, SetInputs, withoutTime } from './SetEditSheet'
 
 interface ExerciseCardProps {
   session: Session
@@ -111,8 +110,8 @@ function ExerciseBody({ session, index, entry, step }: { session: Session; index
       {editing !== null && entry.sets[editing] && (
         <SetEditSheet
           type={entry.type}
-          set={entry.sets[editing]}
-          number={editing + 1}
+          title={`Série ${editing + 1}`}
+          initial={withoutTime(entry.sets[editing])}
           step={step}
           onClose={() => setEditing(null)}
           onSave={(values) => updateSet(session.id, index, editing, values)}
@@ -120,76 +119,6 @@ function ExerciseBody({ session, index, entry, step }: { session: Session; index
         />
       )}
     </div>
-  )
-}
-
-function withoutTime(set: SetEntry): SetValues {
-  const { at: _at, ...values } = set
-  return values
-}
-
-function SetInputs(props: { type: ExerciseType; values: SetValues; onChange: (v: SetValues) => void; step: number }) {
-  const { type, values, onChange, step } = props
-  if (type === 'duration') {
-    return (
-      <div className="set-inputs">
-        <Stepper
-          label="Secondes"
-          value={values.seconds ?? 0}
-          step={5}
-          integer
-          onChange={(seconds) => onChange({ ...values, seconds })}
-        />
-      </div>
-    )
-  }
-  return (
-    <div className="set-inputs set-inputs-2">
-      <Stepper label="Reps" value={values.reps ?? 0} step={1} integer onChange={(reps) => onChange({ ...values, reps })} />
-      <Stepper
-        label={type === 'bodyweight' ? 'Lest (kg)' : 'Kg'}
-        value={values.kg ?? 0}
-        step={step}
-        onChange={(kg) => onChange({ ...values, kg })}
-      />
-    </div>
-  )
-}
-
-function SetEditSheet(props: {
-  type: ExerciseType
-  set: SetEntry
-  number: number
-  step: number
-  onClose: () => void
-  onSave: (values: SetValues) => void
-  onDelete: () => void
-}) {
-  const [values, setValues] = useState<SetValues>(withoutTime(props.set))
-  return (
-    <Sheet open onClose={props.onClose} title={`Série ${props.number}`}>
-      <SetInputs type={props.type} values={values} onChange={setValues} step={props.step} />
-      <div className="sheet-actions">
-        <button
-          className="btn btn-primary"
-          onClick={() => {
-            props.onSave(values)
-            props.onClose()
-          }}
-        >
-          Enregistrer
-        </button>
-        <button
-          className="btn btn-ghost btn-danger"
-          onClick={() => {
-            props.onDelete()
-            props.onClose()
-          }}
-        >
-          Supprimer la série
-        </button>
-      </div>
-    </Sheet>
   )
 }
 

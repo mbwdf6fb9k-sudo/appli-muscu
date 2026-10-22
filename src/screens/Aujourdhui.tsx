@@ -151,7 +151,7 @@ function ActiveSessionCard({ session, now }: { session: Session; now: Date }) {
 function DoneSessionCard({ session }: { session: Session }) {
   const stats = sessionStats(session)
   return (
-    <Link to={`/seance/${session.id}/resume`} className="card done-card">
+    <Link to={`/progres/seance/${session.id}`} className="card done-card">
       <span className="done-check">
         <CheckIcon />
       </span>

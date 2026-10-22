@@ -108,7 +108,9 @@ async function updateSession(id: string, change: (session: Session) => void): Pr
     const session = await db.sessions.get(id)
     if (!session) return
     change(session)
-    session.exerciseIds = [...new Set(session.exercises.filter((e) => e.sets.length > 0).map((e) => e.exerciseId))]
+    // Séance terminée : un exercice dont on a supprimé toutes les séries n'est pas gardé
+    if (session.status === 'done') session.exercises = session.exercises.filter((e) => e.sets.length > 0)
+    session.exerciseIds =[...new Set(session.exercises.filter((e) => e.sets.length > 0).map((e) => e.exerciseId))]
     await db.sessions.put(session)
   })
 }
@@ -187,6 +189,25 @@ export function finishSession(id: string, now = new Date()) {
 
 export async function abandonSession(id: string): Promise<void> {
   await db.sessions.delete(id)
+}
+
+/** Supprime définitivement une séance de l'historique. */
+export const deleteSession = abandonSession
+
+/** Déplace une séance à un autre jour (AAAA-MM-JJ), en gardant ses heures et sa durée. */
+export function changeSessionDate(id: string, date: string) {
+  const [year, month, day] = date.split('-').map(Number)
+  return updateSession(id, (s) => {
+    const start = new Date(s.startedAt)
+    const moved = new Date(year, month - 1, day, start.getHours(), start.getMinutes(), start.getSeconds())
+    if (s.endedAt) s.endedAt = new Date(moved.getTime() + (new Date(s.endedAt).getTime() - start.getTime())).toISOString()
+    s.startedAt = moved.toISOString()
+    s.date = date
+  })
+}
+
+export function useDoneSessions(): Session[] | undefined {
+  return useLiveQuery(() => db.sessions.where('status').equals('done').toArray())
 }
 
 /** Liste des exercices (hors « + Abdos ») à recopier dans le modèle. */
