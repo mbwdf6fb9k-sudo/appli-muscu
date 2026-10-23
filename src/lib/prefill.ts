@@ -1,10 +1,11 @@
 import type { ExerciseType, SetEntry, Target } from '../db/database'
-import type { Suggestion } from './progression'
+import { workSets } from './sets'
 
 export interface SetValues {
   reps?: number
   kg?: number
   seconds?: number
+  warmup?: boolean
 }
 
 export const DEFAULT_VALUES: Record<ExerciseType, SetValues> = {
@@ -23,23 +24,32 @@ function sameValues(type: ExerciseType, a: SetEntry, b: SetEntry): boolean {
 }
 
 /**
- * Valeurs proposées pour la prochaine série.
- * - 1re série : la nouvelle charge si un palier est franchi, sinon la 1re série de la dernière fois,
- *   sinon (première fois) le bas de la fourchette du programme.
- * - Tant que tu refais exactement la dernière fois : la série suivante de la dernière fois.
- * - Dès que tu t'en écartes : ta dernière série du jour.
+ * Valeurs proposées pour la prochaine série de travail (les échauffements sont ignorés).
+ * - Avec un objectif du jour : série par série, tant que tu gardes la charge prévue ;
+ *   si tu changes de charge, la suite reprend ta dernière série.
+ * - Sans objectif : 1re série = 1re série de la dernière fois (ou bas de la fourchette la première fois),
+ *   puis la série suivante de la dernière fois tant que tu la refais à l'identique, sinon ta dernière série.
  */
 export function prefillNextSet(
   type: ExerciseType,
-  todaySets: SetEntry[],
-  lastSets: SetEntry[],
+  todayAll: SetEntry[],
+  lastAll: SetEntry[],
   target?: Target,
-  suggestion?: Suggestion | null,
+  plan?: SetValues[],
 ): SetValues {
+  const todaySets = workSets(todayAll)
+  const lastSets = workSets(lastAll)
   const index = todaySets.length
+
+  if (plan && plan.length > 0) {
+    if (index === 0) return { ...plan[0] }
+    const planned = plan[Math.min(index - 1, plan.length - 1)]
+    const previous = todaySets[index - 1]
+    const keptLoad = type === 'duration' || (previous.kg ?? 0) === (planned.kg ?? 0)
+    return keptLoad ? { ...plan[Math.min(index, plan.length - 1)] } : values(type, previous)!
+  }
+
   if (index === 0) {
-    // Palier franchi : nouvelle charge, retour au bas de la fourchette
-    if (suggestion && target) return { reps: target.min, kg: suggestion.kg }
     const last = values(type, lastSets[0])
     if (last) return last
     // Première fois : bas de la fourchette du programme

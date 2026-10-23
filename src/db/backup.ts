@@ -1,5 +1,5 @@
 import { SCHEMA_VERSION, type Exercise, type MuscuDB, type Template } from './database'
-import { applyProgram } from './program'
+import { applyExerciseDefaults, applyProgram } from './program'
 import { DEFAULT_EXERCISES, DEFAULT_SUPPLEMENTS, DEFAULT_TEMPLATES } from './seed'
 
 export const BACKUP_APP_ID = 'appli-muscu'
@@ -39,6 +39,12 @@ const BACKUP_MIGRATIONS: Record<number, (tables: BackupTables) => BackupTables> 
     )
     return { ...tables, exercises, templates }
   },
+  // v5 → v6 : foot/tennis, paliers haltères, exercices polyarticulaires
+  5: (tables) => ({
+    ...tables,
+    exercises: applyExerciseDefaults((tables.exercises ?? []) as Exercise[]),
+    activities: [],
+  }),
 }
 
 export async function exportBackup(database: MuscuDB, now = new Date()): Promise<BackupFile> {

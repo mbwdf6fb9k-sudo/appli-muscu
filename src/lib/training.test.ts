@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Session, SetEntry } from '../db/database'
 import { formatSetsLine, formatSeconds, parseNumber } from './format'
 import { prefillNextSet } from './prefill'
-import { suggestProgression } from './progression'
+import { dailyObjective, warmupSets } from './objective'
 import { computeBests, epley1RM, findBrokenRecords, liveRecords } from './records'
 import { sessionStats } from './sessionStats'
 
@@ -138,41 +138,107 @@ describe('affichage', () => {
   })
 })
 
-describe('double progression', () => {
+describe('objectif du jour', () => {
   const target = { sets: 3, min: 8, max: 12, rir: '1' }
 
-  it('toutes les séries au haut de la fourchette → +1 palier', () => {
-    expect(suggestProgression('weight', [w(12, 60), w(12, 60), w(12, 60)], target, 2.5)).toEqual({
-      kg: 62.5,
-      from: 60,
-      kind: 'charge',
-      reps: 12,
-    })
+  it('règle 1 : toutes les séries au haut de la fourchette → +1 palier, bas de la fourchette', () => {
+    const o = dailyObjective('weight', [w(12, 50), w(12, 50), w(12, 50)], target, 2.5)!
+    expect(o.rule).toBe('up')
+    expect(o.text).toBe('Passe à 52,5 kg, vise 8+')
+    expect(o.plan).toEqual([{ reps: 8, kg: 52.5 }, { reps: 8, kg: 52.5 }, { reps: 8, kg: 52.5 }])
   })
 
-  it('une série en dessous → même charge', () => {
-    expect(suggestProgression('weight', [w(12, 60), w(12, 60), w(11, 60)], target, 2.5)).toBeNull()
+  it('règle 2 : au moins la moitié sous le bas → −10 % arrondi au palier', () => {
+    const o = dailyObjective('weight', [w(9, 50), w(7, 50), w(6, 50)], target, 2.5)!
+    expect(o.rule).toBe('down')
+    expect(o.text).toBe('Baisse à 45 kg (−10 %), vise 8-12')
+    expect(o.plan[0]).toEqual({ reps: 8, kg: 45 })
+    // Haltères (palier 2 kg) : 22 × 0,9 = 19,8 → 20
+    expect(dailyObjective('weight', [w(6, 22), w(6, 22), w(9, 22)], target, 2)!.plan[0].kg).toBe(20)
   })
 
-  it('pas assez de séries, ou première fois → rien', () => {
-    expect(suggestProgression('weight', [w(12, 60), w(12, 60)], target, 2.5)).toBeNull()
-    expect(suggestProgression('weight', [], target, 2.5)).toBeNull()
+  it('règle 3 : même charge, +1 rep sur les séries pas au haut', () => {
+    const o = dailyObjective('weight', [w(10, 50), w(10, 50), w(9, 50)], target, 2.5)!
+    expect(o.rule).toBe('same')
+    expect(o.text).toBe('Même charge, vise 10-11 reps')
+    expect(o.plan).toEqual([{ reps: 11, kg: 50 }, { reps: 11, kg: 50 }, { reps: 10, kg: 50 }])
+    // Une série déjà au haut le reste
+    expect(dailyObjective('weight', [w(12, 50), w(11, 50), w(11, 50)], target, 2.5)!.plan.map((p) => p.reps)).toEqual([12, 12, 12])
   })
 
-  it('tractions 3 × 10 au poids du corps → ajoute du lest', () => {
-    expect(suggestProgression('bodyweight', [w(10, 0), w(10, 0), w(10, 0)], { sets: 3, min: 5, max: 10 }, 2.5)).toMatchObject({
-      kg: 2.5,
-      kind: 'lest',
-    })
+  it('pas assez de séries pour la règle 1 → règle 3', () => {
+    expect(dailyObjective('weight', [w(12, 50), w(12, 50)], target, 2.5)!.rule).toBe('same')
   })
 
-  it('pré-remplit la nouvelle charge au bas de la fourchette', () => {
-    const suggestion = suggestProgression('weight', [w(12, 60), w(12, 60), w(12, 60)], target, 2.5)
-    expect(prefillNextSet('weight', [], [w(12, 60)], target, suggestion)).toEqual({ reps: 8, kg: 62.5 })
+  it('les échauffements sont ignorés', () => {
+    const sets = [{ ...w(10, 25), warmup: true }, { ...w(5, 35), warmup: true }, w(12, 50), w(12, 50), w(12, 50)]
+    expect(dailyObjective('weight', sets, target, 2.5)!.rule).toBe('up')
+  })
+
+  it('poids du corps : tout au haut → +2,5 kg de lest ; sans lest, pas de baisse', () => {
+    const t = { sets: 3, min: 5, max: 10 }
+    expect(dailyObjective('bodyweight', [w(10, 0), w(10, 0), w(10, 0)], t, 2.5)!.text).toBe('Ajoute du lest : +2,5 kg, vise 5+')
+    expect(dailyObjective('bodyweight', [w(10, 5), w(10, 5), w(10, 5)], t, 2.5)!.text).toBe('Passe à 7,5 kg de lest, vise 5+')
+    expect(dailyObjective('bodyweight', [w(3, 0), w(3, 0), w(2, 0)], t, 2.5)!.rule).toBe('same')
+  })
+
+  it('durée : tout au haut → +5 s, sinon +5 s par série sans dépasser le haut', () => {
+    const t = { sets: 2, min: 30, max: 60 }
+    expect(dailyObjective('duration', [d(60), d(60)], t, 2.5)!.text).toBe('Passe à 65 s')
+    expect(dailyObjective('duration', [d(45), d(58)], t, 2.5)!.plan).toEqual([{ seconds: 50 }, { seconds: 60 }])
+  })
+
+  it('première fois et semaine allégée', () => {
+    expect(dailyObjective('weight', [], target, 2.5)!.text).toBe('Première fois : trouve une charge qui te laisse 2-3 reps en réserve')
+    const o = dailyObjective('weight', [w(10, 50), w(9, 50), w(9, 50)], { ...target, sets: 2, rir: '3-4' }, 2.5, true)!
+    expect(o.text).toBe('Semaine allégée : même charge, 2 séries, 3-4 reps en réserve')
+    expect(o.plan).toEqual([{ reps: 10, kg: 50 }, { reps: 9, kg: 50 }])
+  })
+
+  it('sans objectif dans le modèle → rien', () => {
+    expect(dailyObjective('weight', [w(10, 50)], undefined, 2.5)).toBeNull()
+  })
+
+  it('pré-remplit série par série, tant que la charge prévue est gardée', () => {
+    const plan = [{ reps: 11, kg: 50 }, { reps: 11, kg: 50 }, { reps: 10, kg: 50 }]
+    expect(prefillNextSet('weight', [], [], target, plan)).toEqual({ reps: 11, kg: 50 })
+    expect(prefillNextSet('weight', [w(11, 50), w(11, 50)], [], target, plan)).toEqual({ reps: 10, kg: 50 })
+    // Charge changée : on reprend la dernière série du jour
+    expect(prefillNextSet('weight', [w(9, 55)], [], target, plan)).toEqual({ reps: 9, kg: 55 })
+    // Les échauffements du jour ne décalent pas le plan
+    expect(prefillNextSet('weight', [{ ...w(10, 25), warmup: true }], [], target, plan)).toEqual({ reps: 11, kg: 50 })
   })
 
   it('première fois : bas de la fourchette', () => {
     expect(prefillNextSet('weight', [], [], target)).toEqual({ reps: 8, kg: 20 })
     expect(prefillNextSet('duration', [], [], { sets: 2, min: 30, max: 60 })).toEqual({ seconds: 30 })
+  })
+})
+
+describe('échauffements', () => {
+  it('1er exercice : 50 % × 10, 70 % × 5, 85 % × 3, arrondis au palier', () => {
+    expect(warmupSets('weight', 60, 2.5, 'first')).toEqual([
+      { reps: 10, kg: 30, warmup: true },
+      { reps: 5, kg: 42.5, warmup: true },
+      { reps: 3, kg: 50, warmup: true },
+    ])
+  })
+
+  it('2e exercice : une série à 70 % × 5 ; rien sans charge ou en durée', () => {
+    expect(warmupSets('weight', 30, 2, 'second')).toEqual([{ reps: 5, kg: 22, warmup: true }])
+    expect(warmupSets('bodyweight', 0, 2.5, 'first')).toEqual([])
+    expect(warmupSets('duration', 60, 2.5, 'first')).toEqual([])
+  })
+
+  it('ne comptent ni dans les records, ni le volume, ni les séries', () => {
+    const history = [w(10, 60)]
+    const today = [{ ...w(10, 80), warmup: true }, w(10, 60)]
+    expect(liveRecords('weight', history, today).size).toBe(0)
+    expect(computeBests('weight', today)).toEqual({ maxKg: 60, best1RM: 80 })
+    const session: Session = {
+      id: 'x', templateId: 'jambes', date: '', startedAt: '2026-10-22T18:00:00.000Z', endedAt: '2026-10-22T19:00:00.000Z',
+      status: 'done', exerciseIds: [], exercises: [{ exerciseId: 'squat', type: 'weight', note: '', sets: today }],
+    }
+    expect(sessionStats(session)).toMatchObject({ setCount: 1, volume: 600 })
   })
 })

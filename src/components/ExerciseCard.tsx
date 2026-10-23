@@ -2,12 +2,13 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
 import type { Exercise, ExerciseTips, Session, SessionExercise } from '../db/database'
 import { addSet, deleteSet, previousSets, setNote, updateSet, useLastPerformance } from '../db/sessions'
-import { formatNumber, formatSet, formatSetsLine, formatShortDate, formatTarget } from '../lib/format'
+import { formatSet, formatSetsLine, formatShortDate, formatTarget } from '../lib/format'
 import { haptic } from '../lib/haptics'
+import { dailyObjective, warmupSets } from '../lib/objective'
 import { prefillNextSet, type SetValues } from '../lib/prefill'
-import { suggestProgression, type Suggestion } from '../lib/progression'
 import { liveRecords, type BrokenRecord } from '../lib/records'
-import { CheckIcon, ChevronDownIcon, CopyIcon, InfoIcon, TrophyIcon } from './icons'
+import { workSets } from '../lib/sets'
+import { CheckIcon, ChevronDownIcon, CopyIcon, InfoIcon, PlusIcon, TrophyIcon } from './icons'
 import { SetEditSheet, SetInputs, withoutTime } from './SetEditSheet'
 
 interface ExerciseCardProps {
@@ -22,8 +23,10 @@ interface ExerciseCardProps {
   onRecord: (exerciseName: string, records: BrokenRecord[]) => void
   /** Place dans un superset : « A1 », avec l'exercice à enchaîner */
   superset?: SupersetInfo
-  /** Rappel d'échauffement (1er et 2e exercices) */
-  warmup?: string
+  /** Échauffement proposé : 1er exercice, ou 2e s'il est polyarticulaire */
+  warmupPosition?: 'first' | 'second'
+  /** N'a pas progressé sur 3 séances d'affilée */
+  stagnating?: boolean
 }
 
 export interface SupersetInfo {
@@ -33,10 +36,10 @@ export interface SupersetInfo {
 }
 
 export function ExerciseCard(props: ExerciseCardProps) {
-  const { session, index, entry, exercise, open, onToggle, defaultStep, onRecord, superset, warmup } = props
+  const { session, index, entry, exercise, open, onToggle, defaultStep, onRecord, superset } = props
   const name = exercise?.name ?? 'Exercice supprimé'
-  const count = entry.sets.length
-  const summary = count > 0 ? formatSetsLine(entry.type, entry.sets) : entry.target ? formatTarget(entry.type, entry.target) : null
+  const work = workSets(entry.sets)
+  const summary = work.length > 0 ? formatSetsLine(entry.type, work) : entry.target ? formatTarget(entry.type, entry.target) : null
 
   return (
     <section className={open ? 'exercise-card open' : 'exercise-card'}>
@@ -46,7 +49,8 @@ export function ExerciseCard(props: ExerciseCardProps) {
           <span className="exercise-name">{name}</span>
           {summary && !open && <span className="exercise-sub">{summary}</span>}
         </span>
-        {count > 0 && <span className="set-count">{count}</span>}
+        {props.stagnating && <span className="stagnation-badge">stagnation</span>}
+        {work.length > 0 && <span className="set-count">{work.length}</span>}
         <span className="exercise-chevron">
           <ChevronDownIcon />
         </span>
@@ -60,7 +64,8 @@ export function ExerciseCard(props: ExerciseCardProps) {
           onRecord={(records) => onRecord(name, records)}
           tips={exercise?.tips}
           superset={superset}
-          warmup={warmup}
+          warmupPosition={props.warmupPosition}
+          stagnating={props.stagnating}
         />
       )}
     </section>
@@ -75,16 +80,20 @@ interface ExerciseBodyProps {
   onRecord: (records: BrokenRecord[]) => void
   tips?: ExerciseTips
   superset?: SupersetInfo
-  warmup?: string
+  warmupPosition?: 'first' | 'second'
+  stagnating?: boolean
 }
 
-function ExerciseBody({ session, index, entry, step, onRecord, tips, superset, warmup }: ExerciseBodyProps) {
+function ExerciseBody(props: ExerciseBodyProps) {
+  const { session, index, entry, step, onRecord, tips, superset, warmupPosition, stagnating } = props
+  // « La dernière fois » : dernière séance, allégée ou non. Objectif du jour : dernière séance NON allégée.
   const last = useLastPerformance(entry.exerciseId, session.startedAt)
+  const lastNormal = useLastPerformance(entry.exerciseId, session.startedAt, true)
   const history = useLiveQuery(
     () => previousSets(entry.exerciseId, session.startedAt, entry.type),
     [entry.exerciseId, session.startedAt, entry.type],
   )
-  // Séries record (recalculées si une série est corrigée ou supprimée)
+  // Séries record (recalculées si une série est corrigée ou supprimée ; jamais un échauffement)
   const records = liveRecords(entry.type, history ?? [], entry.sets)
 
   // Célébration : seulement pour la série qu'on vient de valider, pas au chargement ni à la correction
@@ -103,20 +112,30 @@ function ExerciseBody({ session, index, entry, step, onRecord, tips, superset, w
     celebrateAt.current = entry.sets.length
     void addSet(session.id, index, values)
   }
-  const lastSets = last && last.type === entry.type ? last.sets : []
   const [editing, setEditing] = useState<number | null>(null)
 
   const target = entry.target
-  const suggestion = suggestProgression(entry.type, lastSets, target, step)
+  const lastSets = last && last.type === entry.type ? last.sets : []
+  const objectiveSets = lastNormal && lastNormal.type === entry.type ? lastNormal.sets : []
+  const loading = last === undefined || lastNormal === undefined
+  const objective = loading ? null : dailyObjective(entry.type, objectiveSets, target, step, !!session.deload)
 
-  // Valeurs proposées : recalculées dès qu'une série est ajoutée ou que « la dernière fois » est chargée
-  const prefillKey = `${entry.sets.length}|${last === undefined ? 'loading' : (last?.date ?? 'none')}`
-  const prefill = () => prefillNextSet(entry.type, entry.sets, lastSets, target, suggestion)
+  const work = workSets(entry.sets)
+  const warmups = entry.sets.length - work.length
+
+  // Valeurs proposées : recalculées dès qu'une série est ajoutée ou que l'historique est chargé
+  const prefillKey = `${entry.sets.length}|${loading ? 'loading' : `${last?.date ?? 'none'}|${lastNormal?.date ?? 'none'}`}`
+  const prefill = () => prefillNextSet(entry.type, entry.sets, lastSets, target, objective?.plan)
   const [draft, setDraft] = useState({ key: prefillKey, values: prefill() })
   if (draft.key !== prefillKey) setDraft({ key: prefillKey, values: prefill() })
   const setValues = (values: SetValues) => setDraft({ key: prefillKey, values })
 
-  const lastToday = entry.sets.at(-1)
+  // Échauffement proposé d'après la charge de travail du champ kg (pré-rempli avec l'objectif)
+  const proposals = warmupPosition && work.length === 0 ? warmupSets(entry.type, draft.values.kg ?? 0, step, warmupPosition) : []
+  const lastWork = work.at(-1)
+
+  // Numéro des séries de travail (les échauffements sont marqués « É »)
+  let workNumber = 0
 
   return (
     <div className="exercise-body">
@@ -127,8 +146,8 @@ function ExerciseBody({ session, index, entry, step, onRecord, tips, superset, w
             {target.rir && ` · RIR ${target.rir}`}
             {target.rest && ` · repos ${target.rest}`}
           </span>
-          <span className={entry.sets.length >= target.sets ? 'target-progress done' : 'target-progress'}>
-            {entry.sets.length} / {target.sets}
+          <span className={work.length >= target.sets ? 'target-progress done' : 'target-progress'}>
+            {work.length} / {target.sets}
           </span>
         </div>
       )}
@@ -138,55 +157,92 @@ function ExerciseBody({ session, index, entry, step, onRecord, tips, superset, w
           {superset.next ? `enchaîne avec ${superset.next}, sans pause.` : 'repos après la paire.'}
         </p>
       )}
-      {warmup && entry.sets.length === 0 && <p className="hint-chip">{warmup}</p>}
+      {stagnating && (
+        <p className="hint-chip hint-stagnation">
+          Pas de progrès sur 3 séances : baisse de 10 % et remonte
+          {tips?.replacement ? `, ou passe à l’exercice de remplacement : ${tips.replacement.replace(/\.$/, '')}.` : '.'}
+        </p>
+      )}
       {tips && <TipsToggle tips={tips} />}
 
       <div className="last-time">
-        {last === undefined ? (
+        {loading ? (
           <span className="muted">…</span>
         ) : last && lastSets.length > 0 ? (
           <>
             <span className="last-time-label">Dernière fois · {formatShortDate(new Date(last.date))}</span>
             <span className="last-time-sets">{formatSetsLine(entry.type, lastSets)}</span>
-            {suggestion && <SuggestionLine suggestion={suggestion} />}
           </>
-        ) : (
+        ) : objective?.rule === 'first' ? null : (
+          // L'objectif du jour dit déjà « Première fois » : pas de doublon
           <span className="last-time-label">Première fois</span>
+        )}
+        {objective && (
+          <span className={`objective objective-${objective.rule}`}>
+            <span className="objective-label">Objectif du jour</span>
+            <strong>{objective.text}</strong>
+          </span>
         )}
       </div>
 
+      {proposals.length > 0 && (
+        <div className="warmup-box">
+          <span className="warmup-title">Échauffement proposé · non compté</span>
+          <div className="warmup-list">
+            {proposals.map((p, i) => {
+              const done = i < warmups
+              return (
+                <button
+                  key={i}
+                  className={done ? 'warmup-chip done' : 'warmup-chip'}
+                  disabled={done || i > warmups}
+                  onClick={() => add(p)}
+                  aria-label={`Ajouter l’échauffement ${formatSet(entry.type, { ...p, at: '' })}`}
+                >
+                  {done ? <CheckIcon /> : <PlusIcon />}
+                  {formatSet(entry.type, { ...p, at: '' })}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       {entry.sets.length > 0 && (
         <ol className="set-list">
-          {entry.sets.map((set, i) => (
-            <li key={set.at + i}>
-              <button className={records.has(i) ? 'set-chip record' : 'set-chip'} onClick={() => setEditing(i)}>
-                <span className="set-num">{i + 1}</span>
-                {formatSet(entry.type, set)}
-                {records.has(i) && (
-                  <span className="set-trophy" aria-label="Record">
-                    <TrophyIcon />
-                  </span>
-                )}
-              </button>
-            </li>
-          ))}
+          {entry.sets.map((set, i) => {
+            const label = set.warmup ? 'É' : String(++workNumber)
+            return (
+              <li key={set.at + i}>
+                <button
+                  className={['set-chip', set.warmup ? 'warmup' : '', records.has(i) ? 'record' : ''].join(' ').trim()}
+                  onClick={() => setEditing(i)}
+                  aria-label={`${set.warmup ? 'Échauffement' : `Série ${label}`} : ${formatSet(entry.type, set)}`}
+                >
+                  <span className="set-num">{label}</span>
+                  {formatSet(entry.type, set)}
+                  {records.has(i) && (
+                    <span className="set-trophy" aria-label="Record">
+                      <TrophyIcon />
+                    </span>
+                  )}
+                </button>
+              </li>
+            )
+          })}
         </ol>
       )}
 
       <SetInputs type={entry.type} values={draft.values} onChange={setValues} step={step} />
 
       <div className="set-actions">
-        <button
-          className="btn btn-primary"
-          onClick={() => add(draft.values)}
-          aria-label="Valider la série"
-        >
+        <button className="btn btn-primary" onClick={() => add({ ...draft.values, warmup: undefined })} aria-label="Valider la série">
           <CheckIcon /> Valider
         </button>
         <button
           className="btn btn-secondary btn-duplicate"
-          disabled={!lastToday}
-          onClick={() => lastToday && add(withoutTime(lastToday))}
+          disabled={!lastWork}
+          onClick={() => lastWork && add(withoutTime(lastWork))}
           aria-label="Dupliquer la série précédente"
         >
           <CopyIcon /> Dupliquer
@@ -198,7 +254,7 @@ function ExerciseBody({ session, index, entry, step, onRecord, tips, superset, w
       {editing !== null && entry.sets[editing] && (
         <SetEditSheet
           type={entry.type}
-          title={`Série ${editing + 1}`}
+          title={entry.sets[editing].warmup ? 'Série d’échauffement' : `Série ${workSets(entry.sets.slice(0, editing + 1)).length}`}
           initial={withoutTime(entry.sets[editing])}
           step={step}
           onClose={() => setEditing(null)}
@@ -207,20 +263,6 @@ function ExerciseBody({ session, index, entry, step, onRecord, tips, superset, w
         />
       )}
     </div>
-  )
-}
-
-function SuggestionLine({ suggestion }: { suggestion: Suggestion }) {
-  const value =
-    suggestion.kind === 'lest'
-      ? suggestion.from === 0
-        ? `Ajoute du lest : +${formatNumber(suggestion.kg)} kg`
-        : `Monte le lest : ${formatNumber(suggestion.kg)} kg`
-      : `Monte d’un palier : ${formatNumber(suggestion.kg)} kg`
-  return (
-    <span className="suggestion">
-      <strong>↑ {value}</strong> — la dernière fois, toutes tes séries ont atteint {suggestion.reps} reps.
-    </span>
   )
 }
 

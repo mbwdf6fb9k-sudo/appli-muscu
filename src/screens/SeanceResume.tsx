@@ -24,6 +24,7 @@ import { formatDuration, formatSet, formatSetsLine, formatVolume } from '../lib/
 import { DEFAULT_VALUES, type SetValues } from '../lib/prefill'
 import { findBrokenRecords, formatRecordValue, RECORD_LABELS, type BrokenRecord } from '../lib/records'
 import { sessionStats } from '../lib/sessionStats'
+import { workSets } from '../lib/sets'
 
 interface Highlights {
   records: { exerciseId: string; records: BrokenRecord[] }[]
@@ -78,7 +79,7 @@ export function SeanceResume({ mode }: { mode: 'resume' | 'history' }) {
   return (
     <Screen
       title={TEMPLATE_NAMES[session.templateId]}
-      subtitle={formatLongDate(new Date(session.startedAt))}
+      subtitle={`${formatLongDate(new Date(session.startedAt))}${session.deload ? ' · allégée' : ''}`}
       leading={
         <button className="icon-btn icon-btn-back" onClick={back} aria-label="Retour">
           <ChevronLeftIcon />
@@ -136,7 +137,7 @@ export function SeanceResume({ mode }: { mode: 'resume' | 'history' }) {
             {session.exercises.map((entry) => (
               <div key={entry.exerciseId} className="detail-row">
                 <span className="detail-name">{name(entry.exerciseId)}</span>
-                <span className="muted small">{formatSetsLine(entry.type, entry.sets)}</span>
+                <span className="muted small">{detailLine(entry)}</span>
                 {entry.note && <span className="detail-note">« {entry.note} »</span>}
               </div>
             ))}
@@ -152,6 +153,15 @@ export function SeanceResume({ mode }: { mode: 'resume' | 'history' }) {
       )}
     </Screen>
   )
+}
+
+/** « 10 × 60 · 8 × 62,5 kg · + 2 échauffements » (séries de travail d'abord) */
+function detailLine(entry: SessionExercise): string {
+  const work = workSets(entry.sets)
+  const warmups = entry.sets.length - work.length
+  const warmupText = warmups > 0 ? `${warmups} échauffement${warmups > 1 ? 's' : ''}` : ''
+  if (work.length === 0) return warmupText
+  return warmupText ? `${formatSetsLine(entry.type, work)} · + ${warmupText}` : formatSetsLine(entry.type, work)
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -201,8 +211,8 @@ function EditSession(props: {
             <ol className="set-list">
               {e.sets.map((set, setIndex) => (
                 <li key={set.at + setIndex}>
-                  <button className="set-chip" onClick={() => setSheet({ index, setIndex })}>
-                    <span className="set-num">{setIndex + 1}</span>
+                  <button className={set.warmup ? 'set-chip warmup' : 'set-chip'} onClick={() => setSheet({ index, setIndex })}>
+                    <span className="set-num">{set.warmup ? 'É' : workSets(e.sets.slice(0, setIndex + 1)).length}</span>
                     {formatSet(e.type, set)}
                   </button>
                 </li>

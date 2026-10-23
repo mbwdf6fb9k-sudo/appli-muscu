@@ -25,7 +25,7 @@ export async function createExercise(name: string, type: ExerciseType): Promise<
 
 export async function updateExercise(
   id: string,
-  changes: Pick<Exercise, 'name' | 'type'> & { step?: number; tips?: ExerciseTips },
+  changes: Pick<Exercise, 'name' | 'type'> & { step?: number; tips?: ExerciseTips; compound?: boolean },
 ) {
   await db.transaction('rw', db.exercises, async () => {
     const exercise = await db.exercises.get(id)
@@ -33,6 +33,10 @@ export async function updateExercise(
     const next: Exercise = { ...exercise, name: changes.name.trim(), type: changes.type }
     if (changes.step) next.step = changes.step
     else delete next.step
+    if (changes.compound !== undefined) {
+      if (changes.compound) next.compound = true
+      else delete next.compound
+    }
     if (changes.tips) {
       const tips = Object.fromEntries(
         Object.entries(changes.tips).filter(([, v]) => v?.trim()).map(([k, v]) => [k, v!.trim()]),

@@ -98,6 +98,7 @@ function ExerciseEditSheet(props: { exercise: Exercise | null; defaultStep: numb
   const [technique, setTechnique] = useState(exercise?.tips?.technique ?? '')
   const [errors, setErrors] = useState(exercise?.tips?.errors ?? '')
   const [replacement, setReplacement] = useState(exercise?.tips?.replacement ?? '')
+  const [compound, setCompound] = useState(!!exercise?.compound)
 
   async function save() {
     if (!name.trim()) return
@@ -107,6 +108,7 @@ function ExerciseEditSheet(props: { exercise: Exercise | null; defaultStep: numb
       type,
       step: parsedStep && parsedStep > 0 ? parsedStep : undefined,
       tips: { technique, errors, replacement },
+      compound,
     }
     if (exercise) await updateExercise(exercise.id, changes)
     else {
@@ -149,6 +151,15 @@ function ExerciseEditSheet(props: { exercise: Exercise | null; defaultStep: numb
             value={step}
             onChange={(e) => setStep(e.target.value)}
           />
+        </label>
+      )}
+      {type !== 'duration' && (
+        <label className="check-field">
+          <input type="checkbox" checked={compound} onChange={(e) => setCompound(e.target.checked)} />
+          <span>
+            Polyarticulaire
+            <span className="muted small"> : échauffement proposé aussi en 2e exercice de la séance</span>
+          </span>
         </label>
       )}
       <label className="field">

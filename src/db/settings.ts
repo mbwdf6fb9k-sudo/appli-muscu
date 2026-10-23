@@ -21,6 +21,19 @@ export interface Settings {
   startDate: string
   goal: string
   targetWeight: number | null
+  /** Mise en place de l'étape 8 (bandeau des 14 jours, compte des 6 semaines) */
+  featureStartAt: string | null
+  /** Semaines allégées (dates AAAA-MM-JJ, fin incluse) */
+  deloadPeriods: DeloadPeriod[]
+  /** « Plus tard » sur la suggestion de semaine allégée */
+  deloadSnoozedUntil: string | null
+}
+
+export interface DeloadPeriod {
+  start: string
+  end: string
+  /** Arrêtée avant la fin prévue */
+  stopped?: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -35,6 +48,9 @@ export const DEFAULT_SETTINGS: Settings = {
   startDate: '2026-10-01',
   goal: 'Stock et esthétique : prise de muscle propre, proportions équilibrées',
   targetWeight: null,
+  featureStartAt: null,
+  deloadPeriods: [],
+  deloadSnoozedUntil: null,
 }
 
 export async function readSettings(database: MuscuDB = db): Promise<Settings> {
@@ -63,4 +79,8 @@ export function useSettings(): Settings | undefined {
 export async function initSettings(database: MuscuDB = db): Promise<void> {
   const existing = await database.settings.get('firstLaunchAt')
   if (!existing) await setSetting('firstLaunchAt', new Date().toISOString(), database)
+  // Étape 8 : le jour où la mise à jour s'installe (bandeau des 14 jours, semaine allégée)
+  if (!(await database.settings.get('featureStartAt'))) {
+    await setSetting('featureStartAt', new Date().toISOString(), database)
+  }
 }

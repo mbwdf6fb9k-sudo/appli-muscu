@@ -1,5 +1,6 @@
 import type { ExerciseType, SetEntry } from '../db/database'
 import { formatNumber, formatSeconds } from './format'
+import { workSets } from './sets'
 
 /** 1RM estimé (formule d'Epley), seulement pour les séries de 1 à 12 reps avec une charge. */
 export function epley1RM(kg: number | undefined, reps: number | undefined): number | undefined {
@@ -54,7 +55,8 @@ function max(values: (number | undefined)[]): number | undefined {
   return numbers.length > 0 ? Math.max(...numbers) : undefined
 }
 
-export function computeBests(type: ExerciseType, sets: SetEntry[]): Bests {
+export function computeBests(type: ExerciseType, allSets: SetEntry[]): Bests {
+  const sets = workSets(allSets)
   switch (type) {
     case 'weight':
       return {
@@ -80,7 +82,7 @@ export interface BrokenRecord {
  * Aucun record la première fois qu'on fait l'exercice.
  */
 export function findBrokenRecords(type: ExerciseType, previousSets: SetEntry[], currentSets: SetEntry[]): BrokenRecord[] {
-  if (previousSets.length === 0) return []
+  if (workSets(previousSets).length === 0) return []
   const before = computeBests(type, previousSets)
   const now = computeBests(type, currentSets)
   const broken: BrokenRecord[] = []
@@ -102,8 +104,10 @@ export function findBrokenRecords(type: ExerciseType, previousSets: SetEntry[], 
  */
 export function liveRecords(type: ExerciseType, history: SetEntry[], today: SetEntry[]): Map<number, BrokenRecord[]> {
   const records = new Map<number, BrokenRecord[]>()
-  if (history.length === 0) return records
+  if (workSets(history).length === 0) return records
   today.forEach((set, i) => {
+    // Une série d'échauffement ne bat jamais de record
+    if (set.warmup) return
     const broken = findBrokenRecords(type, [...history, ...today.slice(0, i)], [set])
     if (broken.length > 0) records.set(i, broken)
   })

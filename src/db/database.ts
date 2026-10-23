@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable, type Transaction } from 'dexie'
-import { applyProgram } from './program'
+import { applyExerciseDefaults, applyProgram } from './program'
 import { DEFAULT_EXERCISES, DEFAULT_SUPPLEMENTS, DEFAULT_TEMPLATES } from './seed'
 
 export interface SettingRow {
@@ -26,6 +26,8 @@ export interface Exercise {
   hidden?: boolean
   /** Consignes du programme */
   tips?: ExerciseTips
+  /** Polyarticulaire : série d'échauffement proposée aussi en 2e exercice */
+  compound?: boolean
 }
 
 /** Objectif d'un exercice dans un modèle : séries × fourchette (reps, ou secondes pour la durée). */
@@ -74,6 +76,8 @@ export interface SetEntry {
   kg?: number
   seconds?: number
   at: string
+  /** Série d'échauffement : hors objectif du jour, records, volume et stagnation */
+  warmup?: boolean
 }
 
 export interface SessionExercise {
@@ -98,6 +102,8 @@ export interface Session {
   exercises: SessionExercise[]
   /** Exercices ayant au moins une série (index pour retrouver « la dernière fois »). */
   exerciseIds: string[]
+  /** Séance de semaine allégée : hors objectif du jour et stagnation */
+  deload?: boolean
 }
 
 export interface WeighIn {
@@ -132,8 +138,18 @@ export interface Intake {
   at: string
 }
 
+export type ActivityType = 'foot' | 'tennis'
+
+/** Foot ou tennis un jour donné (ne compte pas comme séance de muscu). */
+export interface Activity {
+  /** « AAAA-MM-JJ|foot » : une ligne par jour et par sport */
+  id: string
+  date: string
+  type: ActivityType
+}
+
 /** Version actuelle du schéma (la plus haute déclarée ci-dessous). */
-export const SCHEMA_VERSION = 5
+export const SCHEMA_VERSION = 6
 
 export class MuscuDB extends Dexie {
   settings!: EntityTable<SettingRow, 'key'>
@@ -144,6 +160,7 @@ export class MuscuDB extends Dexie {
   weighIns!: EntityTable<WeighIn, 'date'>
   supplements!: EntityTable<Supplement, 'id'>
   intakes!: EntityTable<Intake, 'id'>
+  activities!: EntityTable<Activity, 'id'>
 
   constructor(name = 'appli-muscu') {
     super(name)
@@ -181,11 +198,19 @@ export class MuscuDB extends Dexie {
     // Étape 7 : programme personnel (objectifs, consignes, nouveaux modèles) — pas de nouvel index
     this.version(5).stores({}).upgrade(applyProgramToDb)
 
+    // Étape 8 : foot/tennis, paliers haltères (2 kg) et exercices polyarticulaires
+    this.version(6)
+      .stores({
+        activities: 'id, date',
+      })
+      .upgrade(applyExerciseDefaultsToDb)
+
     // Base toute neuve : exercices, compléments et programme par défaut
     this.on('populate', async (tx) => {
       await seedDefaults(tx)
       await seedSupplements(tx)
       await applyProgramToDb(tx)
+      await applyExerciseDefaultsToDb(tx)
     })
   }
 }
@@ -199,6 +224,10 @@ async function applyProgramToDb(tx: Transaction): Promise<void> {
   const { exercises, templates } = applyProgram(await tx.table('exercises').toArray(), await tx.table('templates').toArray())
   await tx.table('exercises').bulkPut(exercises)
   await tx.table('templates').bulkPut(templates)
+}
+
+async function applyExerciseDefaultsToDb(tx: Transaction): Promise<void> {
+  await tx.table('exercises').bulkPut(applyExerciseDefaults(await tx.table('exercises').toArray()))
 }
 
 async function seedSupplements(tx: Transaction): Promise<void> {

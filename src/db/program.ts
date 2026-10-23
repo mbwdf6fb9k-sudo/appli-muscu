@@ -253,8 +253,6 @@ export const PROGRAM_RULES: { title: string; text: string }[] = [
   },
 ]
 
-export const WARMUP_FIRST = 'Échauffement : 2-3 séries progressives (≈ 50 % × 10, 70 % × 5, 85 % × 3), non comptées.'
-export const WARMUP_SECOND = 'Échauffement : 1 série s’il est lourd, non comptée.'
 
 /**
  * Applique le programme : renomme, ajoute, donne les consignes et remplace les modèles.
@@ -296,4 +294,54 @@ export function applyProgram(exercises: Exercise[], templates: Template[]): { ex
     nextTemplates.push(template)
   }
   return { exercises: [...byId.values()], templates: nextTemplates }
+}
+
+/** Exercices aux haltères : palier par défaut de 2 kg (« haltère suivant »). */
+const DUMBBELL_IDS = [
+  'developpe-incline-halteres',
+  'curl-incline-halteres',
+  'curl-marteau',
+  'elevations-laterales',
+  'souleve-de-terre-roumain',
+  'rowing-haltere',
+  'curl-halteres',
+  'kickback',
+  'developpe-militaire-halteres',
+  'fentes-bulgares',
+]
+
+/** Exercices polyarticulaires : échauffement proposé aussi quand ils sont en 2e position. */
+const COMPOUND_IDS = [
+  'tractions',
+  'rowing-poitrine-appuyee',
+  'tirage-horizontal-assis',
+  'tirage-vertical',
+  'tirage-vertical-unilateral',
+  'rowing-barre',
+  'rowing-haltere',
+  'developpe-incline-halteres',
+  'developpe-couche-barre',
+  'developpe-militaire-halteres',
+  'hack-squat',
+  'squat',
+  'presse-a-cuisses',
+  'souleve-de-terre-roumain',
+  'fentes-bulgares',
+  'hip-thrust',
+  'dips',
+]
+
+export const DUMBBELL_STEP = 2
+
+/**
+ * Valeurs par défaut de l'étape 8 : palier 2 kg aux haltères et case « polyarticulaire ».
+ * Ne remplace jamais un réglage déjà fait (pas de charge ou case déjà définis).
+ */
+export function applyExerciseDefaults(exercises: Exercise[]): Exercise[] {
+  return exercises.map((exercise) => {
+    const next = { ...exercise }
+    if (DUMBBELL_IDS.includes(next.id) && next.step === undefined) next.step = DUMBBELL_STEP
+    if (COMPOUND_IDS.includes(next.id) && next.compound === undefined) next.compound = true
+    return next
+  })
 }

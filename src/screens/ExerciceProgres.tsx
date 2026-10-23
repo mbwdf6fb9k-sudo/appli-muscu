@@ -8,6 +8,7 @@ import { useExercisesById } from '../db/exercises'
 import { useDoneSessions } from '../db/sessions'
 import { formatSetsLine, formatShortDate } from '../lib/format'
 import { exerciseHistory, exerciseRecords } from '../lib/progress'
+import { exerciseStagnates } from '../lib/stagnation'
 import type { ExerciseType } from '../db/database'
 import { formatRecordValue, RECORD_LABELS, type RecordKind } from '../lib/records'
 
@@ -52,6 +53,14 @@ export function ExerciceProgres() {
         </button>
       }
     >
+      {exerciseStagnates(sessions, id) && (
+        <p className="hint-chip hint-stagnation">
+          <span className="stagnation-badge inline">stagnation</span> Pas de progrès sur 3 séances : baisse de 10 % et remonte
+          {exercise?.tips?.replacement
+            ? `, ou passe à l’exercice de remplacement : ${exercise.tips.replacement.replace(/\.$/, '')}.`
+            : '.'}
+        </p>
+      )}
       {history.length === 0 ? (
         <p className="muted hint">Aucune séance terminée avec cet exercice pour l’instant.</p>
       ) : (

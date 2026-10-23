@@ -10,6 +10,9 @@ import {
 } from './database'
 import { setDayChoice } from './days'
 import { localDateStamp } from '../lib/dates'
+import { activeDeload, deloadTarget } from '../lib/deload'
+import { workSets } from '../lib/sets'
+import { readSettings } from './settings'
 
 export function useActiveSession(): Session | null | undefined {
   return useLiveQuery(async () => (await db.sessions.where('status').equals('active').first()) ?? null)
@@ -49,23 +52,32 @@ export interface Performance {
   sets: SetEntry[]
 }
 
-/** Les séries de la dernière séance terminée où l'exercice a été fait. */
-export async function lastPerformance(exerciseId: string, before?: string): Promise<Performance | null> {
+/**
+ * Les séries de travail de la dernière séance terminée où l'exercice a été fait.
+ * skipDeload : ignore les séances de semaine allégée (pour l'objectif du jour).
+ */
+export async function lastPerformance(
+  exerciseId: string,
+  before?: string,
+  skipDeload = false,
+): Promise<Performance | null> {
   const sessions = await db.sessions
     .where('exerciseIds')
     .equals(exerciseId)
-    .filter((s) => s.status === 'done' && (!before || s.startedAt < before))
+    .filter((s) => s.status === 'done' && (!before || s.startedAt < before) && !(skipDeload && s.deload))
     .toArray()
-  const last = sessions.sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0]
-  const exercise = last?.exercises.find((e) => e.exerciseId === exerciseId && e.sets.length > 0)
-  return last && exercise ? { date: last.startedAt, type: exercise.type, sets: exercise.sets } : null
+  for (const session of sessions.sort((a, b) => b.startedAt.localeCompare(a.startedAt))) {
+    const exercise = session.exercises.find((e) => e.exerciseId === exerciseId && workSets(e.sets).length > 0)
+    if (exercise) return { date: session.startedAt, type: exercise.type, sets: workSets(exercise.sets) }
+  }
+  return null
 }
 
-export function useLastPerformance(exerciseId: string, before?: string): Performance | null | undefined {
-  return useLiveQuery(() => lastPerformance(exerciseId, before), [exerciseId, before])
+export function useLastPerformance(exerciseId: string, before?: string, skipDeload = false): Performance | null | undefined {
+  return useLiveQuery(() => lastPerformance(exerciseId, before, skipDeload), [exerciseId, before, skipDeload])
 }
 
-/** Toutes les séries passées d'un exercice (séances terminées avant `before`), du même type si précisé. */
+/** Toutes les séries de travail passées d'un exercice (séances terminées avant `before`), du même type si précisé. */
 export async function previousSets(exerciseId: string, before: string, type?: ExerciseType): Promise<SetEntry[]> {
   const sessions = await db.sessions
     .where('exerciseIds')
@@ -73,7 +85,7 @@ export async function previousSets(exerciseId: string, before: string, type?: Ex
     .filter((s) => s.status === 'done' && s.startedAt < before)
     .toArray()
   return sessions.flatMap((s) =>
-    s.exercises.filter((e) => e.exerciseId === exerciseId && (!type || e.type === type)).flatMap((e) => e.sets),
+    s.exercises.filter((e) => e.exerciseId === exerciseId && (!type || e.type === type)).flatMap((e) => workSets(e.sets)),
   )
 }
 
@@ -81,9 +93,12 @@ export async function previousSets(exerciseId: string, before: string, type?: Ex
 
 /** Démarre une séance (ou renvoie celle déjà en cours). */
 export async function startSession(templateId: SessionTemplateId, now = new Date()): Promise<Session> {
-  return db.transaction('rw', [db.sessions, db.templates, db.exercises, db.days], async () => {
+  return db.transaction('rw', [db.sessions, db.templates, db.exercises, db.days, db.settings], async () => {
     const active = await db.sessions.where('status').equals('active').first()
     if (active) return active
+    // Semaine allégée en cours : séance marquée « allégée », moitié moins de séries, RIR 3-4
+    const deload = !!activeDeload((await readSettings()).deloadPeriods, localDateStamp(now))
+    const targetOf = (target: Target | undefined) => (target && deload ? deloadTarget(target) : target)
 
     const template = await db.templates.get(templateId)
     const exercises = await db.exercises.bulkGet(template?.exerciseIds ?? [])
@@ -96,9 +111,10 @@ export async function startSession(templateId: SessionTemplateId, now = new Date
       status: 'active',
       exercises: exercises
         .filter((e) => e && !e.hidden)
-        .map((e) => withTarget({ exerciseId: e!.id, type: e!.type, sets: [], note: '' }, template?.targets?.[e!.id])),
+        .map((e) => withTarget({ exerciseId: e!.id, type: e!.type, sets: [], note: '' }, targetOf(template?.targets?.[e!.id]))),
       exerciseIds: [],
     }
+    if (deload) session.deload = true
     await db.sessions.add(session)
     await setDayChoice(session.date, templateId)
     return session
@@ -118,16 +134,23 @@ async function updateSession(id: string, change: (session: Session) => void): Pr
   })
 }
 
+/** Série enregistrée : « warmup » seulement pour un échauffement (absent = série de travail). */
+function cleanSet(values: Omit<SetEntry, 'at'>, at: string): SetEntry {
+  const set: SetEntry = { ...values, at }
+  if (!set.warmup) delete set.warmup
+  return set
+}
+
 export function addSet(id: string, exerciseIndex: number, values: Omit<SetEntry, 'at'>): Promise<void> {
   return updateSession(id, (s) => {
-    s.exercises[exerciseIndex]?.sets.push({ ...values, at: new Date().toISOString() })
+    s.exercises[exerciseIndex]?.sets.push(cleanSet(values, new Date().toISOString()))
   })
 }
 
 export function updateSet(id: string, exerciseIndex: number, setIndex: number, values: Omit<SetEntry, 'at'>) {
   return updateSession(id, (s) => {
     const set = s.exercises[exerciseIndex]?.sets[setIndex]
-    if (set) s.exercises[exerciseIndex].sets[setIndex] = { ...values, at: set.at }
+    if (set) s.exercises[exerciseIndex].sets[setIndex] = cleanSet(values, set.at)
   })
 }
 
@@ -160,7 +183,8 @@ export async function addExercises(id: string, exerciseIds: string[], fromAbs = 
   await updateSession(id, (s) => {
     for (const e of exercises) {
       if (!e || s.exercises.some((x) => x.exerciseId === e.id)) continue
-      const entry = withTarget({ exerciseId: e.id, type: e.type, sets: [], note: '' }, targetOf(e.id))
+      const target = targetOf(e.id)
+      const entry = withTarget({ exerciseId: e.id, type: e.type, sets: [], note: '' }, target && s.deload ? deloadTarget(target) : target)
       if (fromAbs) entry.fromAbs = true
       s.exercises.push(entry)
     }

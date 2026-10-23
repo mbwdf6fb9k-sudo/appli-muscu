@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { BackupBanner } from '../components/BackupBanner'
+import { DeloadCard } from '../components/DeloadCard'
 import { CheckIcon, ChevronRightIcon } from '../components/icons'
 import { PlannedTimeField } from '../components/PlannedTimeField'
 import { Screen, SettingsLink } from '../components/Screen'
@@ -46,6 +47,7 @@ export function Aujourdhui() {
   return (
     <Screen title="Aujourd’hui" subtitle={formatLongDate(now)} trailing={<SettingsLink />}>
       <BackupBanner />
+      <DeloadCard now={now} />
       {loading ? null : active ? (
         <ActiveSessionCard session={active} now={now} />
       ) : (

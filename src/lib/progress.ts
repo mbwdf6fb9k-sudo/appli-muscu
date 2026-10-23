@@ -1,5 +1,6 @@
 import type { ExerciseType, Session, SetEntry } from '../db/database'
 import { computeBests, findBrokenRecords, RECORD_KINDS, type Bests, type RecordKind } from './records'
+import { workSets } from './sets'
 
 /** Lundi 0 h de la semaine de la date (heure locale). */
 export function startOfWeek(date: Date): Date {
@@ -49,8 +50,11 @@ export interface HistoryEntry {
   sessionId: string
   startedAt: string
   type: ExerciseType
+  /** Séries de travail (sans les échauffements) */
   sets: SetEntry[]
   bests: Bests
+  /** Séance de semaine allégée */
+  deload: boolean
 }
 
 const byDate = (a: Session, b: Session) => a.startedAt.localeCompare(b.startedAt)
@@ -59,14 +63,16 @@ const byDate = (a: Session, b: Session) => a.startedAt.localeCompare(b.startedAt
 export function exerciseHistory(sessions: Session[], exerciseId: string): HistoryEntry[] {
   const entries: HistoryEntry[] = []
   for (const session of sessions.filter((s) => s.status === 'done').sort(byDate)) {
-    const exercise = session.exercises.find((e) => e.exerciseId === exerciseId && e.sets.length > 0)
+    const exercise = session.exercises.find((e) => e.exerciseId === exerciseId && workSets(e.sets).length > 0)
     if (!exercise) continue
+    const sets = workSets(exercise.sets)
     entries.push({
       sessionId: session.id,
       startedAt: session.startedAt,
       type: exercise.type,
-      sets: exercise.sets,
-      bests: computeBests(exercise.type, exercise.sets),
+      sets,
+      bests: computeBests(exercise.type, sets),
+      deload: !!session.deload,
     })
   }
   return entries
@@ -110,7 +116,7 @@ export function exerciseSummaries(sessions: Session[]): ExerciseSummary[] {
   const sets = new Map<string, { type: ExerciseType; lastDate: string; count: number; sets: SetEntry[] }>()
   for (const session of sessions.filter((s) => s.status === 'done').sort(byDate)) {
     for (const exercise of session.exercises) {
-      if (exercise.sets.length === 0) continue
+      if (workSets(exercise.sets).length === 0) continue
       const current = sets.get(exercise.exerciseId)
       // Si le type a changé, on ne garde que les séries du type le plus récent
       const keep = current && current.type === exercise.type ? current.sets : []
@@ -118,7 +124,7 @@ export function exerciseSummaries(sessions: Session[]): ExerciseSummary[] {
         type: exercise.type,
         lastDate: session.startedAt,
         count: (current?.count ?? 0) + 1,
-        sets: [...keep, ...exercise.sets],
+        sets: [...keep, ...workSets(exercise.sets)],
       })
     }
   }
@@ -141,8 +147,9 @@ export function recordSessionIds(sessions: Session[]): Set<string> {
     for (const exercise of session.exercises) {
       const key = `${exercise.exerciseId}|${exercise.type}`
       const previous = past.get(key) ?? []
-      if (findBrokenRecords(exercise.type, previous, exercise.sets).length > 0) ids.add(session.id)
-      past.set(key, [...previous, ...exercise.sets])
+      const sets = workSets(exercise.sets)
+      if (findBrokenRecords(exercise.type, previous, sets).length > 0) ids.add(session.id)
+      past.set(key, [...previous, ...sets])
     }
   }
   return ids

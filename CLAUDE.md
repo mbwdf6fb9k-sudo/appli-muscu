@@ -134,7 +134,50 @@ Le planning du jour dépend du type de journée (section 2).
 - Ne jamais supprimer ni casser les données existantes quand le modèle de données évolue : prévoir des migrations.
 - Je ne suis pas développeur : explique-moi simplement ce que tu fais et ce que je dois tester sur mon téléphone.
 
+## 8. Fonctions ajoutées après la première version
+
+### Programme personnalisé (étape 7)
+- Les modèles suivent `programme-muscu.md` : Dos-Biceps, Pecs-Triceps, **Jambes + rappel dos et épaules**, **Bras + épaules**, Abdos.
+- Chaque exercice d'un modèle a un **objectif** : séries × fourchette de reps (ou de secondes), RIR, repos conseillé (affiché seulement, pas de minuteur), superset éventuel (A1/A2…).
+- Chaque exercice a des **consignes** (technique, erreurs, remplacement), repliées derrière « Consignes » pendant la séance.
+- Aujourd'hui affiche la durée de chaque séance et des conseils de placement (Jambes : pas la veille du foot ; Bras : pas le lendemain de Dos-Biceps ou Pecs-Triceps).
+- Tout est modifiable dans Réglages → Exercices et modèles, qui rappelle aussi les règles du programme.
+
+### Calendrier de régularité (Progrès, tout en haut)
+- Compteurs : « X séances cette semaine · Y ce mois-ci » (muscu uniquement).
+- **Série en cours** : semaines d'affilée à 3 séances ou plus. La semaine en cours ne casse pas la série tant qu'elle n'est pas finie (elle s'ajoute dès sa 3e séance) ; une semaine terminée sous 3 séances remet à zéro ; une semaine allégée compte normalement. **Meilleure série** affichée à côté.
+- Calendrier du mois, du lundi au dimanche, flèches et balayage pour changer de mois, jour actuel entouré.
+- Une pastille de couleur par séance (Dos-Biceps bleu, Pecs-Triceps rose, Jambes vert, Bras jaune ; couleurs vérifiées pour le daltonisme), foot (rond creux) et tennis (losange) en gris, semaines allégées teintées, légende dessous.
+- Toucher un jour : les séances de ce jour (vers leur détail) et les interrupteurs **Foot** / **Tennis** (aussi pour un jour passé). Foot et tennis ne comptent pas comme muscu.
+
+### Objectif du jour (double progression)
+- Sous « La dernière fois », pour chaque exercice qui a un objectif dans son modèle. Calculé sur la **dernière séance non allégée**, **séries de travail uniquement** :
+  1. toutes les séries prévues au haut de la fourchette → charge + 1 palier, objectif = bas de la fourchette ;
+  2. au moins la moitié des séries sous le bas → baisser de 10 % (arrondi au palier) ;
+  3. sinon → même charge, +1 rep sur les séries qui n'étaient pas au haut.
+- Poids du corps : +2,5 kg de lest quand tout est au haut (jamais de baisse sans lest). Durée : +5 s.
+- Première fois : « trouve une charge qui te laisse 2-3 reps en réserve ». Les reps et kg sont pré-remplis série par série avec l'objectif ; c'est une suggestion.
+- Pendant les 14 jours qui suivent la mise en place de la fonction : bandeau « Semaines 1-2 : trouve tes charges en gardant 2-3 reps en réserve ».
+- **Paliers** : barre, machine, poulie et lest 2,5 kg ; haltères 2 kg. Modifiable par exercice (sa fiche dans les Réglages) ; c'est aussi le pas des boutons + / − du champ kg.
+
+### Séries d'échauffement
+- Proposées automatiquement sur le 1er exercice (≈ 50 % × 10, 70 % × 5, 85 % × 3) et sur le 2e s'il est **polyarticulaire** (70 % × 5), d'après la charge de travail du jour, arrondies au palier. Pas proposées au poids du corps sans lest ni en durée.
+- Toute série peut devenir un échauffement (et inversement) depuis son panneau.
+- Affichées plus discrètement (« É ») ; elles ne comptent ni dans l'objectif du jour, ni dans les records, ni dans le volume, ni dans le nombre de séries, ni dans la stagnation. Les séances enregistrées avant cette fonction sont 100 % séries de travail.
+
+### Repère de stagnation
+- Un exercice est en stagnation quand aucune de ses **3 dernières séances** (de travail, hors semaine allégée) ne bat la meilleure performance des séances d'avant.
+- Progresser : charge max plus haute, ou même charge max avec plus de reps au total à cette charge (poids du corps : plus de lest, ou même lest avec plus de reps ; durée : plus de secondes).
+- Badge « stagnation » en séance, dans Progrès → Exercices et sur la fiche de l'exercice, avec le conseil « baisse de 10 % et remonte, ou passe à l'exercice de remplacement ». Il disparaît dès que l'exercice progresse.
+
+### Semaine allégée
+- Carte sur Aujourd'hui, 6 semaines après la première séance faite avec cette fonction (ou après la dernière semaine allégée), ou plus tôt si 3 exercices ou plus stagnent. « Activer » ou « Plus tard » (revient 3 jours après).
+- Active 7 jours (arrêtable avant) : moitié moins de séries (arrondi au supérieur), mêmes charges, RIR 3-4. Ces séances sont marquées « allégée » : elles comptent dans le calendrier et les records, mais pas dans l'objectif du jour ni la stagnation.
+
+### Données
+- Version 6 de la base : table `activities` (foot/tennis), `warmup` sur les séries, `deload` sur les séances, `compound` (polyarticulaire) sur les exercices, réglages `featureStartAt`, `deloadPeriods`, `deloadSnoozedUntil`. La migration ne perd rien ; l'export inclut tout et les anciens exports sont convertis à l'import.
+
 ## Plus tard (pas dans la première version)
-- Suggestion d'augmenter la charge quand toutes les reps sont réussies.
-- Calendrier de régularité.
+- ~~Suggestion d'augmenter la charge quand toutes les reps sont réussies.~~ Fait : objectif du jour (section 8).
+- ~~Calendrier de régularité.~~ Fait : section 8.
 - Mensurations.

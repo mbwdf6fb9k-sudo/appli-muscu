@@ -9,7 +9,6 @@ import { Screen } from '../components/Screen'
 import { Sheet } from '../components/Sheet'
 import type { Session } from '../db/database'
 import { setTemplateExercises, useExercisesById, useTemplate } from '../db/exercises'
-import { WARMUP_FIRST, WARMUP_SECOND } from '../db/program'
 import { TEMPLATE_NAMES } from '../db/seed'
 import {
   abandonSession,
@@ -20,10 +19,12 @@ import {
   removeExercise,
   templateListFromSession,
   useActiveSession,
+  useDoneSessions,
 } from '../db/sessions'
 import { useSettings } from '../db/settings'
 import { formatDuration, formatTime } from '../lib/format'
 import { sessionStats } from '../lib/sessionStats'
+import { stagnatingExercises } from '../lib/stagnation'
 import { useNow } from '../lib/useNow'
 
 const OPEN_KEY = 'appli-muscu-open-exercise'
@@ -54,6 +55,7 @@ export function Seance() {
 function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: string) => void }) {
   const navigate = useNavigate()
   const exercisesById = useExercisesById()
+  const doneSessions = useDoneSessions()
   const template = useTemplate(session.templateId)
   const settings = useSettings()
   const now = useNow()
@@ -93,8 +95,14 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
       })
     })
   }
-  // Échauffement sur les 2 premiers exercices du programme
-  const warmupFor = (index: number) => (index === 0 ? WARMUP_FIRST : index === 1 ? WARMUP_SECOND : undefined)
+  // Échauffement proposé : 1er exercice, et 2e s'il est polyarticulaire (jamais pour les abdos ajoutés)
+  const warmupFor = (index: number, exerciseId: string, fromAbs?: boolean) =>
+    fromAbs ? undefined : index === 0 ? 'first' : index === 1 && exercisesById?.get(exerciseId)?.compound ? 'second' : undefined
+  // Stagnation : exercices qui n'ont pas progressé sur 3 séances (hors semaines allégées)
+  const stagnating = doneSessions ? stagnatingExercises(doneSessions) : new Set<string>()
+  // Les 14 premiers jours de l'objectif du jour : trouver ses charges
+  const firstWeeks =
+    !!settings?.featureStartAt && now.getTime() - new Date(settings.featureStartAt).getTime() < 14 * 86_400_000
   const templateIds = (template?.exerciseIds ?? []).filter((id) => !exercisesById?.get(id)?.hidden)
 
   function finishEditing() {
@@ -154,6 +162,12 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
         </div>
       ) : (
         <div className="exercise-list">
+          {session.deload && (
+            <p className="hint-chip session-advice deload-hint">Séance allégée : moitié moins de séries, 3-4 reps en réserve.</p>
+          )}
+          {firstWeeks && (
+            <p className="hint-chip session-advice">Semaines 1-2 : trouve tes charges en gardant 2-3 reps en réserve.</p>
+          )}
           {template?.advice && <p className="hint-chip session-advice">{template.advice}</p>}
           {session.exercises.map((entry, index) => (
             <ExerciseCard
@@ -167,7 +181,8 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
               defaultStep={settings.weightStep}
               onRecord={(exerciseName, records) => setCelebration({ id: Date.now(), exerciseName, records })}
               superset={supersets.get(entry.exerciseId)}
-              warmup={entry.target && !entry.fromAbs ? warmupFor(index) : undefined}
+              warmupPosition={warmupFor(index, entry.exerciseId, entry.fromAbs)}
+              stagnating={stagnating.has(entry.exerciseId)}
             />
           ))}
           {session.exercises.length === 0 && (

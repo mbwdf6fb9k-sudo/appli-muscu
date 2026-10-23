@@ -55,6 +55,20 @@ export function SetEditSheet(props: SetEditSheetProps) {
   return (
     <Sheet open onClose={props.onClose} title={props.title}>
       <SetInputs type={props.type} values={values} onChange={setValues} step={props.step} />
+      {props.onDelete && (
+        <label className="check-field warmup-toggle">
+          <input
+            type="checkbox"
+            role="switch"
+            checked={!!values.warmup}
+            onChange={(e) => setValues({ ...values, warmup: e.target.checked })}
+          />
+          <span>
+            Série d’échauffement
+            <span className="muted small"> : hors objectif, records, volume et stagnation</span>
+          </span>
+        </label>
+      )}
       <div className="sheet-actions">
         <button
           className="btn btn-primary"
