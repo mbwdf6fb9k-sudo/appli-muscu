@@ -41,7 +41,7 @@
   --text: #121418;
   --text-muted: #5d6570;
   --accent-text: #4a7300;
-  --danger: #d33a2c;
+  --danger: #c0301f;
   --tabbar-bg: rgba(255, 255, 255, 0.88);
   /* Le vert citron est illisible sur blanc (1,3:1) : vert soutenu pour les graphiques */
   --chart: #5f9200;
@@ -894,7 +894,7 @@ p {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 12px 0 6px;
   border: 1px solid var(--border);
   border-radius: 20px;
@@ -1029,6 +1029,7 @@ p {
 
 .stepper-value {
   width: 100%;
+  height: 48px;
   min-width: 0;
   border: 0;
   background: transparent;
@@ -1537,6 +1538,7 @@ p {
 }
 
 .weigh-card .stepper-value {
+  height: 56px;
   font-size: 32px;
 }
 
@@ -1623,7 +1625,10 @@ p {
 
 .day-change {
   flex: none;
-  padding: 10px 4px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 4px;
   color: var(--accent-text);
   font-weight: 600;
   text-decoration: none;
