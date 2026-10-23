@@ -1,8 +1,8 @@
 /* ============ Thème ============ */
 :root {
-  /* Couleur d'accent unique de l'appli (vert citron) */
-  --accent: #c6f432;
-  --on-accent: #111400;
+  /* Couleur d'accent unique de l'appli (or) */
+  --accent: #e0b45a;
+  --on-accent: #1a1406;
 
   --bg: #0e0f11;
   --surface: #17191c;
@@ -14,8 +14,8 @@
   --danger: #ff6b5e;
   --tabbar-bg: rgba(14, 15, 17, 0.86);
   /* Graphiques : contraste ≥ 3:1 sur la surface des cartes (vérifié) */
-  --chart: #c6f432;
-  --chart-wash: rgba(198, 244, 50, 0.1);
+  --chart: #e0b45a;
+  --chart-wash: rgba(224, 180, 90, 0.1);
   --chart-muted: #3a3f46;
   /* Pesées brutes sous la moyenne : gris lisible (≥ 3:1, vérifié) */
   --chart-secondary: #7a828c;
@@ -40,12 +40,12 @@
   --border: #dde0e5;
   --text: #121418;
   --text-muted: #5d6570;
-  --accent-text: #4a7300;
+  --accent-text: #87631a;
   --danger: #c0301f;
   --tabbar-bg: rgba(255, 255, 255, 0.88);
-  /* Le vert citron est illisible sur blanc (1,3:1) : vert soutenu pour les graphiques */
-  --chart: #5f9200;
-  --chart-wash: rgba(95, 146, 0, 0.1);
+  /* L'or clair est trop pâle sur blanc : or foncé pour les graphiques (≥ 3:1, vérifié) */
+  --chart: #9c7524;
+  --chart-wash: rgba(156, 117, 36, 0.1);
   --chart-muted: #cfd4da;
   --chart-secondary: #8a919a;
 

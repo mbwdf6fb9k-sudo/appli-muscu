@@ -3,7 +3,7 @@ import { defineConfig, minimal2023Preset } from '@vite-pwa/assets-generator/conf
 // Génère les icônes de l'appli (npm run icons) à partir de public/icon.svg.
 // Le dessin a déjà son fond et ses marges : on n'ajoute presque rien autour
 // (le préréglage ajoute 30 % de marge sur l'icône iPhone, ce qui rendait l'haltère trop petite).
-const background = '#0e0f11'
+const background = '#121212'
 
 export default defineConfig({
   preset: {
