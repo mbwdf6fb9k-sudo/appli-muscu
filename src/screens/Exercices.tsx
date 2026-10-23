@@ -7,6 +7,7 @@ import { Sheet } from '../components/Sheet'
 import { Stepper } from '../components/Stepper'
 import type { Exercise, ExerciseType, TemplateId } from '../db/database'
 import { createExercise, deleteExercise, updateExercise, useExercises, useTemplates } from '../db/exercises'
+import { PROGRAM_RULES } from '../db/program'
 import { TEMPLATE_NAMES } from '../db/seed'
 import { setSetting, useSettings } from '../db/settings'
 import { formatNumber, parseNumber } from '../lib/format'
@@ -33,6 +34,15 @@ export function Exercices() {
         </button>
       }
     >
+      <h2 className="section-title">Règles du programme</h2>
+      <div className="card rules">
+        {PROGRAM_RULES.map((rule) => (
+          <p key={rule.title}>
+            <strong>{rule.title}</strong> : {rule.text}
+          </p>
+        ))}
+      </div>
+
       <h2 className="section-title">Pas de charge par défaut</h2>
       <div className="card">
         <Stepper
@@ -47,10 +57,11 @@ export function Exercices() {
       <h2 className="section-title">Modèles de séance</h2>
       <div className="card list-card">
         {TEMPLATE_ORDER.map((id) => {
-          const count = templates.find((t) => t.id === id)?.exerciseIds.length ?? 0
+          const template = templates.find((t) => t.id === id)
+          const count = template?.exerciseIds.length ?? 0
           return (
             <Link key={id} to={`/reglages/modeles/${id}`} className="list-row">
-              <span>{TEMPLATE_NAMES[id]}</span>
+              <span>{template?.name ?? TEMPLATE_NAMES[id]}</span>
               <span className="list-row-end muted small">
                 {count} exercice{count > 1 ? 's' : ''} <ChevronRightIcon />
               </span>
@@ -84,11 +95,19 @@ function ExerciseEditSheet(props: { exercise: Exercise | null; defaultStep: numb
   const [name, setName] = useState(exercise?.name ?? '')
   const [type, setType] = useState<ExerciseType>(exercise?.type ?? 'weight')
   const [step, setStep] = useState(exercise?.step ? formatNumber(exercise.step) : '')
+  const [technique, setTechnique] = useState(exercise?.tips?.technique ?? '')
+  const [errors, setErrors] = useState(exercise?.tips?.errors ?? '')
+  const [replacement, setReplacement] = useState(exercise?.tips?.replacement ?? '')
 
   async function save() {
     if (!name.trim()) return
     const parsedStep = parseNumber(step)
-    const changes = { name, type, step: parsedStep && parsedStep > 0 ? parsedStep : undefined }
+    const changes = {
+      name,
+      type,
+      step: parsedStep && parsedStep > 0 ? parsedStep : undefined,
+      tips: { technique, errors, replacement },
+    }
     if (exercise) await updateExercise(exercise.id, changes)
     else {
       const created = await createExercise(name, type)
@@ -132,6 +151,18 @@ function ExerciseEditSheet(props: { exercise: Exercise | null; defaultStep: numb
           />
         </label>
       )}
+      <label className="field">
+        <span className="field-label">Technique (consignes)</span>
+        <textarea className="text-input goal-input" rows={3} value={technique} onChange={(e) => setTechnique(e.target.value)} />
+      </label>
+      <label className="field">
+        <span className="field-label">Erreurs à éviter</span>
+        <textarea className="text-input goal-input" rows={2} value={errors} onChange={(e) => setErrors(e.target.value)} />
+      </label>
+      <label className="field">
+        <span className="field-label">Remplacement</span>
+        <input className="text-input" value={replacement} onChange={(e) => setReplacement(e.target.value)} />
+      </label>
       <div className="sheet-actions">
         <button className="btn btn-primary" onClick={save} disabled={!name.trim()}>
           Enregistrer

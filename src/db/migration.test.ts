@@ -6,6 +6,9 @@ import { MuscuDB } from './database'
 import { DEFAULT_EXERCISES } from './seed'
 import { readSettings } from './settings'
 
+// 37 exercices d'origine + 5 nouveaux du programme (étape 7)
+const EXERCISE_COUNT = DEFAULT_EXERCISES.length + 5
+
 describe('migration v1 → v2', () => {
   it('garde les réglages et ajoute les exercices et modèles par défaut', async () => {
     const name = `migration-${crypto.randomUUID()}`
@@ -22,7 +25,7 @@ describe('migration v1 → v2', () => {
     const settings = await readSettings(v2)
     expect(settings.theme).toBe('light')
     expect(settings.lastExportAt).toBe('2026-10-20T10:00:00.000Z')
-    expect(await v2.exercises.count()).toBe(DEFAULT_EXERCISES.length)
+    expect(await v2.exercises.count()).toBe(EXERCISE_COUNT)
     expect((await v2.templates.get('dos-biceps'))?.exerciseIds[0]).toBe('tractions')
     expect((await v2.exercises.get('tractions'))?.type).toBe('bodyweight')
     expect((await v2.exercises.get('gainage'))?.type).toBe('duration')
@@ -52,7 +55,7 @@ describe('migration v1 → v2', () => {
     })
     await importBackup(database, parseBackup(oldExport))
     expect((await readSettings(database)).theme).toBe('light')
-    expect(await database.exercises.count()).toBe(DEFAULT_EXERCISES.length)
+    expect(await database.exercises.count()).toBe(EXERCISE_COUNT)
     expect(await database.sessions.count()).toBe(0)
     await database.delete()
   })

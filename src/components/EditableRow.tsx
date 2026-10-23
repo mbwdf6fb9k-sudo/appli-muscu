@@ -7,16 +7,27 @@ interface EditableRowProps {
   isLast: boolean
   onMove: (direction: -1 | 1) => void
   onRemove: () => void
+  /** Toucher le libellé ouvre un panneau (ex. objectifs de l'exercice) */
+  onOpen?: () => void
 }
 
 /** Ligne d'une liste modifiable : monter, descendre, retirer. */
-export function EditableRow({ label, detail, isFirst, isLast, onMove, onRemove }: EditableRowProps) {
+export function EditableRow({ label, detail, isFirst, isLast, onMove, onRemove, onOpen }: EditableRowProps) {
+  const text = (
+    <>
+      <span className="editable-label">{label}</span>
+      {detail && <span className="muted small">{detail}</span>}
+    </>
+  )
   return (
     <div className="editable-row">
-      <span className="editable-text">
-        <span className="editable-label">{label}</span>
-        {detail && <span className="muted small">{detail}</span>}
-      </span>
+      {onOpen ? (
+        <button className="editable-text editable-open" onClick={onOpen}>
+          {text}
+        </button>
+      ) : (
+        <span className="editable-text">{text}</span>
+      )}
       <button className="icon-btn" aria-label={`Monter ${label}`} disabled={isFirst} onClick={() => onMove(-1)}>
         <ArrowUpIcon />
       </button>

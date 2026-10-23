@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { EditableRow } from '../components/EditableRow'
-import { ExerciseCard } from '../components/ExerciseCard'
+import { ExerciseCard, type SupersetInfo } from '../components/ExerciseCard'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { RecordToast, type RecordCelebration } from '../components/RecordToast'
 import { ChevronLeftIcon, PlusIcon } from '../components/icons'
@@ -9,6 +9,7 @@ import { Screen } from '../components/Screen'
 import { Sheet } from '../components/Sheet'
 import type { Session } from '../db/database'
 import { setTemplateExercises, useExercisesById, useTemplate } from '../db/exercises'
+import { WARMUP_FIRST, WARMUP_SECOND } from '../db/program'
 import { TEMPLATE_NAMES } from '../db/seed'
 import {
   abandonSession,
@@ -79,6 +80,21 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
   const currentOpen = openId
 
   const stats = sessionStats(session, now)
+
+  // Supersets : les exercices de même lettre s'enchaînent (A1 → A2)
+  const supersets = new Map<string, SupersetInfo>()
+  for (const letter of new Set(session.exercises.map((e) => e.target?.superset).filter(Boolean))) {
+    const group = session.exercises.filter((e) => e.target?.superset === letter)
+    group.forEach((e, i) => {
+      const next = group[i + 1]
+      supersets.set(e.exerciseId, {
+        label: `${letter}${i + 1}`,
+        next: next ? (exercisesById?.get(next.exerciseId)?.name ?? undefined) : undefined,
+      })
+    })
+  }
+  // Échauffement sur les 2 premiers exercices du programme
+  const warmupFor = (index: number) => (index === 0 ? WARMUP_FIRST : index === 1 ? WARMUP_SECOND : undefined)
   const templateIds = (template?.exerciseIds ?? []).filter((id) => !exercisesById?.get(id)?.hidden)
 
   function finishEditing() {
@@ -138,6 +154,7 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
         </div>
       ) : (
         <div className="exercise-list">
+          {template?.advice && <p className="hint-chip session-advice">{template.advice}</p>}
           {session.exercises.map((entry, index) => (
             <ExerciseCard
               key={entry.exerciseId}
@@ -149,6 +166,8 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
               onToggle={() => setOpenId(currentOpen === entry.exerciseId ? null : entry.exerciseId)}
               defaultStep={settings.weightStep}
               onRecord={(exerciseName, records) => setCelebration({ id: Date.now(), exerciseName, records })}
+              superset={supersets.get(entry.exerciseId)}
+              warmup={entry.target && !entry.fromAbs ? warmupFor(index) : undefined}
             />
           ))}
           {session.exercises.length === 0 && (

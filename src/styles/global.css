@@ -1837,6 +1837,178 @@ p {
   min-width: 140px;
 }
 
+/* ============ Programme : objectif, supersets, consignes ============ */
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.rules strong {
+  color: var(--text);
+}
+
+.editable-open {
+  min-height: 56px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.field-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.field-grid-3 .stepper-row {
+  grid-template-columns: 34px 1fr 34px;
+}
+
+.field-grid-3 .stepper-btn {
+  height: 44px;
+}
+
+.field-grid-3 .stepper-value {
+  height: 44px;
+  font-size: 20px;
+}
+
+.target-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -2px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.target-text strong {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.target-progress {
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.target-progress.done {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.hint-chip {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.hint-warning {
+  color: var(--text);
+}
+
+.hint-warning::before {
+  content: '⚠︎ ';
+  color: var(--danger);
+}
+
+.session-advice {
+  margin-bottom: 4px;
+}
+
+.superset-badge {
+  display: grid;
+  place-items: center;
+  flex: none;
+  min-width: 34px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1.5px solid var(--accent-text);
+  border-radius: 8px;
+  color: var(--accent-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.tips-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-text);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tips-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+.tips-chevron {
+  display: grid;
+  transition: transform 0.2s var(--ease);
+}
+
+.tips-chevron.open {
+  transform: rotate(180deg);
+}
+
+.tips-body {
+  margin: 0 0 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 14px;
+  animation: expand 0.2s var(--ease);
+}
+
+.tips-body dt {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tips-body dd {
+  margin: 2px 0 10px;
+}
+
+.tips-body dd:last-child {
+  margin-bottom: 0;
+}
+
+.suggestion {
+  margin-top: 6px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.suggestion strong {
+  color: var(--accent-text);
+}
+
 /* ============ Célébration d'un record ============ */
 .record-toast {
   position: fixed;

@@ -130,6 +130,13 @@ export const MoonIcon = () => (
   </Icon>
 )
 
+export const InfoIcon = () => (
+  <Icon>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5M12 8h.01" />
+  </Icon>
+)
+
 export const ShieldIcon = () => (
   <Icon>
     <path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z" />

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Session, SetEntry } from '../db/database'
 import { formatSetsLine, formatSeconds, parseNumber } from './format'
 import { prefillNextSet } from './prefill'
+import { suggestProgression } from './progression'
 import { computeBests, epley1RM, findBrokenRecords, liveRecords } from './records'
 import { sessionStats } from './sessionStats'
 
@@ -134,5 +135,44 @@ describe('affichage', () => {
     expect(parseNumber('62,5')).toBe(62.5)
     expect(parseNumber('')).toBeUndefined()
     expect(parseNumber('abc')).toBeUndefined()
+  })
+})
+
+describe('double progression', () => {
+  const target = { sets: 3, min: 8, max: 12, rir: '1' }
+
+  it('toutes les séries au haut de la fourchette → +1 palier', () => {
+    expect(suggestProgression('weight', [w(12, 60), w(12, 60), w(12, 60)], target, 2.5)).toEqual({
+      kg: 62.5,
+      from: 60,
+      kind: 'charge',
+      reps: 12,
+    })
+  })
+
+  it('une série en dessous → même charge', () => {
+    expect(suggestProgression('weight', [w(12, 60), w(12, 60), w(11, 60)], target, 2.5)).toBeNull()
+  })
+
+  it('pas assez de séries, ou première fois → rien', () => {
+    expect(suggestProgression('weight', [w(12, 60), w(12, 60)], target, 2.5)).toBeNull()
+    expect(suggestProgression('weight', [], target, 2.5)).toBeNull()
+  })
+
+  it('tractions 3 × 10 au poids du corps → ajoute du lest', () => {
+    expect(suggestProgression('bodyweight', [w(10, 0), w(10, 0), w(10, 0)], { sets: 3, min: 5, max: 10 }, 2.5)).toMatchObject({
+      kg: 2.5,
+      kind: 'lest',
+    })
+  })
+
+  it('pré-remplit la nouvelle charge au bas de la fourchette', () => {
+    const suggestion = suggestProgression('weight', [w(12, 60), w(12, 60), w(12, 60)], target, 2.5)
+    expect(prefillNextSet('weight', [], [w(12, 60)], target, suggestion)).toEqual({ reps: 8, kg: 62.5 })
+  })
+
+  it('première fois : bas de la fourchette', () => {
+    expect(prefillNextSet('weight', [], [], target)).toEqual({ reps: 8, kg: 20 })
+    expect(prefillNextSet('duration', [], [], { sets: 2, min: 30, max: 60 })).toEqual({ seconds: 30 })
   })
 })

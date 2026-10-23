@@ -6,6 +6,7 @@ import {
   type SessionExercise,
   type SessionTemplateId,
   type SetEntry,
+  type Target,
 } from './database'
 import { setDayChoice } from './days'
 import { localDateStamp } from '../lib/dates'
@@ -95,7 +96,7 @@ export async function startSession(templateId: SessionTemplateId, now = new Date
       status: 'active',
       exercises: exercises
         .filter((e) => e && !e.hidden)
-        .map((e) => ({ exerciseId: e!.id, type: e!.type, sets: [], note: '' })),
+        .map((e) => withTarget({ exerciseId: e!.id, type: e!.type, sets: [], note: '' }, template?.targets?.[e!.id])),
       exerciseIds: [],
     }
     await db.sessions.add(session)
@@ -142,12 +143,24 @@ export function setNote(id: string, exerciseIndex: number, note: string) {
   })
 }
 
+/** Recopie l'objectif du modèle dans la séance (l'historique garde l'objectif de l'époque). */
+function withTarget(entry: SessionExercise, target: Target | undefined): SessionExercise {
+  if (target) entry.target = { ...target }
+  return entry
+}
+
 export async function addExercises(id: string, exerciseIds: string[], fromAbs = false): Promise<void> {
   const exercises = await db.exercises.bulkGet(exerciseIds)
+  const session = await db.sessions.get(id)
+  const templates = await db.templates.toArray()
+  // Objectif : celui du modèle de la séance, sinon celui d'un autre modèle (ex. les abdos)
+  const targetOf = (exerciseId: string) =>
+    templates.find((t) => t.id === session?.templateId)?.targets?.[exerciseId] ??
+    templates.find((t) => t.targets?.[exerciseId])?.targets?.[exerciseId]
   await updateSession(id, (s) => {
     for (const e of exercises) {
       if (!e || s.exercises.some((x) => x.exerciseId === e.id)) continue
-      const entry: SessionExercise = { exerciseId: e.id, type: e.type, sets: [], note: '' }
+      const entry = withTarget({ exerciseId: e.id, type: e.type, sets: [], note: '' }, targetOf(e.id))
       if (fromAbs) entry.fromAbs = true
       s.exercises.push(entry)
     }

@@ -1,4 +1,5 @@
 import Dexie, { type EntityTable, type Transaction } from 'dexie'
+import { applyProgram } from './program'
 import { DEFAULT_EXERCISES, DEFAULT_SUPPLEMENTS, DEFAULT_TEMPLATES } from './seed'
 
 export interface SettingRow {
@@ -9,6 +10,12 @@ export interface SettingRow {
 /** weight = charge × reps · bodyweight = poids du corps (kg = lest) · duration = secondes */
 export type ExerciseType = 'weight' | 'bodyweight' | 'duration'
 
+export interface ExerciseTips {
+  technique?: string
+  errors?: string
+  replacement?: string
+}
+
 export interface Exercise {
   id: string
   name: string
@@ -17,6 +24,21 @@ export interface Exercise {
   step?: number
   /** Exercice supprimé mais déjà utilisé : gardé pour l'historique. */
   hidden?: boolean
+  /** Consignes du programme */
+  tips?: ExerciseTips
+}
+
+/** Objectif d'un exercice dans un modèle : séries × fourchette (reps, ou secondes pour la durée). */
+export interface Target {
+  sets: number
+  min: number
+  max: number
+  /** « 1-2 » : reps gardées en réserve */
+  rir?: string
+  /** « 2-3 min » : affiché seulement, pas de minuteur */
+  rest?: string
+  /** Lettre du superset : les exercices de même lettre s'enchaînent sans pause */
+  superset?: string
 }
 
 export type SessionTemplateId = 'dos-biceps' | 'pecs-triceps' | 'jambes' | 'bras'
@@ -26,6 +48,14 @@ export interface Template {
   id: TemplateId
   name: string
   exerciseIds: string[]
+  /** Objectif par exercice (clé : id de l'exercice) */
+  targets?: Record<string, Target>
+  /** « ≈ 65 min » */
+  duration?: string
+  /** Conseil de placement dans la semaine */
+  placement?: string
+  /** Conseil affiché pendant la séance */
+  advice?: string
 }
 
 export type DayChoice = SessionTemplateId | 'repos'
@@ -54,6 +84,8 @@ export interface SessionExercise {
   note: string
   /** Ajouté via « + Abdos » : jamais recopié dans le modèle. */
   fromAbs?: boolean
+  /** Objectif au moment de la séance (recopié du modèle) */
+  target?: Target
 }
 
 export interface Session {
@@ -101,7 +133,7 @@ export interface Intake {
 }
 
 /** Version actuelle du schéma (la plus haute déclarée ci-dessous). */
-export const SCHEMA_VERSION = 4
+export const SCHEMA_VERSION = 5
 
 export class MuscuDB extends Dexie {
   settings!: EntityTable<SettingRow, 'key'>
@@ -146,10 +178,14 @@ export class MuscuDB extends Dexie {
       })
       .upgrade(seedSupplements)
 
-    // Base toute neuve : on la remplit directement avec les exercices et compléments par défaut
+    // Étape 7 : programme personnel (objectifs, consignes, nouveaux modèles) — pas de nouvel index
+    this.version(5).stores({}).upgrade(applyProgramToDb)
+
+    // Base toute neuve : exercices, compléments et programme par défaut
     this.on('populate', async (tx) => {
       await seedDefaults(tx)
       await seedSupplements(tx)
+      await applyProgramToDb(tx)
     })
   }
 }
@@ -157,6 +193,12 @@ export class MuscuDB extends Dexie {
 async function seedDefaults(tx: Transaction): Promise<void> {
   await tx.table('exercises').bulkPut(structuredClone(DEFAULT_EXERCISES))
   await tx.table('templates').bulkPut(structuredClone(DEFAULT_TEMPLATES))
+}
+
+async function applyProgramToDb(tx: Transaction): Promise<void> {
+  const { exercises, templates } = applyProgram(await tx.table('exercises').toArray(), await tx.table('templates').toArray())
+  await tx.table('exercises').bulkPut(exercises)
+  await tx.table('templates').bulkPut(templates)
 }
 
 async function seedSupplements(tx: Transaction): Promise<void> {

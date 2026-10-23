@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type Exercise, type ExerciseType, type Template, type TemplateId } from './database'
+import { db, type Exercise, type ExerciseTips, type ExerciseType, type Target, type Template, type TemplateId } from './database'
 
 export function useExercises(): Exercise[] | undefined {
   return useLiveQuery(() => db.exercises.orderBy('name').toArray())
@@ -23,13 +23,23 @@ export async function createExercise(name: string, type: ExerciseType): Promise<
   return exercise
 }
 
-export async function updateExercise(id: string, changes: Pick<Exercise, 'name' | 'type'> & { step?: number }) {
+export async function updateExercise(
+  id: string,
+  changes: Pick<Exercise, 'name' | 'type'> & { step?: number; tips?: ExerciseTips },
+) {
   await db.transaction('rw', db.exercises, async () => {
     const exercise = await db.exercises.get(id)
     if (!exercise) return
     const next: Exercise = { ...exercise, name: changes.name.trim(), type: changes.type }
     if (changes.step) next.step = changes.step
     else delete next.step
+    if (changes.tips) {
+      const tips = Object.fromEntries(
+        Object.entries(changes.tips).filter(([, v]) => v?.trim()).map(([k, v]) => [k, v!.trim()]),
+      ) as ExerciseTips
+      if (Object.keys(tips).length > 0) next.tips = tips
+      else delete next.tips
+    }
     await db.exercises.put(next)
   })
 }
@@ -51,4 +61,16 @@ export async function deleteExercise(id: string): Promise<void> {
 
 export async function setTemplateExercises(id: TemplateId, exerciseIds: string[]): Promise<void> {
   await db.templates.update(id, { exerciseIds })
+}
+
+/** Objectif d'un exercice dans un modèle (null = pas d'objectif). */
+export async function setTemplateTarget(id: TemplateId, exerciseId: string, target: Target | null): Promise<void> {
+  await db.transaction('rw', db.templates, async () => {
+    const template = await db.templates.get(id)
+    if (!template) return
+    const targets = { ...template.targets }
+    if (target) targets[exerciseId] = target
+    else delete targets[exerciseId]
+    await db.templates.put({ ...template, targets })
+  })
 }

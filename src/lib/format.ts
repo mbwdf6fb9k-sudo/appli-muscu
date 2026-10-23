@@ -1,4 +1,4 @@
-import type { ExerciseType, SetEntry } from '../db/database'
+import type { ExerciseType, SetEntry, Target } from '../db/database'
 
 /** 62.5 → « 62,5 » */
 export function formatNumber(value: number): string {
@@ -30,6 +30,12 @@ export function formatSetsLine(type: ExerciseType, sets: SetEntry[]): string {
     return sets.map((s) => formatSet(type, s)).join(' · ')
   }
   return `${sets.map((s) => `${s.reps ?? 0} × ${formatNumber(s.kg ?? 0)}`).join(' · ')} kg`
+}
+
+/** Objectif : « 3 × 8-12 », « 2 × 30-60 s » */
+export function formatTarget(type: ExerciseType, target: Target): string {
+  const range = target.min === target.max ? `${target.min}` : `${target.min}-${target.max}`
+  return `${target.sets} × ${range}${type === 'duration' ? ' s' : ''}`
 }
 
 /** « 15 oct. » */

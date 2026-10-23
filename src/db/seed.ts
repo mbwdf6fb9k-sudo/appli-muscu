@@ -3,8 +3,8 @@ import type { Exercise, ExerciseType, SessionTemplateId, Supplement, Template, T
 export const TEMPLATE_NAMES: Record<TemplateId, string> = {
   'dos-biceps': 'Dos-Biceps',
   'pecs-triceps': 'Pecs-Triceps',
-  jambes: 'Jambes',
-  bras: 'Bras (+ épaules)',
+  jambes: 'Jambes + rappel dos et épaules',
+  bras: 'Bras + épaules',
   abdos: 'Abdos',
 }
 

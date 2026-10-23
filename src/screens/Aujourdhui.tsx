@@ -6,6 +6,7 @@ import { PlannedTimeField } from '../components/PlannedTimeField'
 import { Screen, SettingsLink } from '../components/Screen'
 import type { DayChoice, Session } from '../db/database'
 import { setDayChoice, useDay } from '../db/days'
+import { useTemplates } from '../db/exercises'
 import { SESSION_TEMPLATE_IDS, TEMPLATE_NAMES } from '../db/seed'
 import { startSession, useActiveSession, useDoneSessionsOn, useLastDoneDates } from '../db/sessions'
 import { daysSince, formatDaysAgo, formatLongDate, localDateStamp } from '../lib/dates'
@@ -21,6 +22,9 @@ export function Aujourdhui() {
   const active = useActiveSession()
   const doneToday = useDoneSessionsOn(today)
   const lastDone = useLastDoneDates()
+  const templates = useTemplates()
+  const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+  const doneYesterday = useDoneSessionsOn(localDateStamp(yesterday))
   const [starting, setStarting] = useState(false)
 
   const choice = day?.choice ?? null
@@ -56,11 +60,12 @@ export function Aujourdhui() {
           <div className="choice-list" role="radiogroup" aria-label="Séance du jour">
             {SESSION_TEMPLATE_IDS.map((id) => {
               const last = lastDone?.[id]
+              const duration = templates?.find((t) => t.id === id)?.duration
               return (
                 <ChoiceCard
                   key={id}
                   label={TEMPLATE_NAMES[id]}
-                  detail={last ? `faite ${formatDaysAgo(daysSince(last, now))}` : 'jamais faite'}
+                  detail={`${last ? `faite ${formatDaysAgo(daysSince(last, now))}` : 'jamais faite'}${duration ? ` · ${duration}` : ''}`}
                   selected={choice === id}
                   onSelect={() => toggle(id)}
                 />
@@ -76,6 +81,15 @@ export function Aujourdhui() {
 
           {choice && choice !== 'repos' && (
             <div className="today-start">
+              <PlacementHints
+                placement={templates?.find((t) => t.id === choice)?.placement}
+                // Bras : à éviter le lendemain de Dos-Biceps ou Pecs-Triceps
+                warning={
+                  choice === 'bras'
+                    ? doneYesterday?.find((d) => d.templateId === 'dos-biceps' || d.templateId === 'pecs-triceps')
+                    : undefined
+                }
+              />
               <PlannedTimeField date={today} value={day?.plannedTime} />
               <button className="btn btn-primary btn-large" onClick={handleStart} disabled={starting}>
                 Commencer la séance
@@ -90,6 +104,18 @@ export function Aujourdhui() {
       )}
     </Screen>
   )
+}
+
+function PlacementHints({ placement, warning }: { placement?: string; warning?: Session }) {
+  if (warning) {
+    return (
+      <p className="hint-chip hint-warning" role="note">
+        Tu as fait {TEMPLATE_NAMES[warning.templateId]} hier : le programme conseille d’éviter Bras + épaules le
+        lendemain.
+      </p>
+    )
+  }
+  return placement ? <p className="hint-chip">{placement}</p> : null
 }
 
 function ChoiceCard(props: { label: string; detail: string; selected: boolean; onSelect: () => void }) {
