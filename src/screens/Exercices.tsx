@@ -5,12 +5,13 @@ import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from '../components/icons
 import { Screen } from '../components/Screen'
 import { Sheet } from '../components/Sheet'
 import { Stepper } from '../components/Stepper'
-import type { Exercise, ExerciseType, TemplateId } from '../db/database'
+import type { Exercise, ExerciseType, MuscleGroup, TemplateId } from '../db/database'
 import { createExercise, deleteExercise, updateExercise, useExercises, useTemplates } from '../db/exercises'
 import { PROGRAM_RULES } from '../db/program'
 import { TEMPLATE_NAMES } from '../db/seed'
 import { setSetting, useSettings } from '../db/settings'
 import { formatNumber, parseNumber } from '../lib/format'
+import { MUSCLE_LABELS, MUSCLE_ORDER } from '../lib/muscleVolume'
 
 const TEMPLATE_ORDER: TemplateId[] = ['dos-biceps', 'pecs-triceps', 'jambes', 'bras', 'abdos']
 
@@ -99,6 +100,7 @@ function ExerciseEditSheet(props: { exercise: Exercise | null; defaultStep: numb
   const [errors, setErrors] = useState(exercise?.tips?.errors ?? '')
   const [replacement, setReplacement] = useState(exercise?.tips?.replacement ?? '')
   const [compound, setCompound] = useState(!!exercise?.compound)
+  const [muscle, setMuscle] = useState<MuscleGroup | ''>(exercise?.muscle ?? '')
 
   async function save() {
     if (!name.trim()) return
@@ -109,6 +111,7 @@ function ExerciseEditSheet(props: { exercise: Exercise | null; defaultStep: numb
       step: parsedStep && parsedStep > 0 ? parsedStep : undefined,
       tips: { technique, errors, replacement },
       compound,
+      muscle: muscle || null,
     }
     if (exercise) await updateExercise(exercise.id, changes)
     else {
@@ -141,6 +144,18 @@ function ExerciseEditSheet(props: { exercise: Exercise | null; defaultStep: numb
           ))}
         </div>
       </div>
+      <label className="field">
+        <span className="field-label">Muscle principal</span>
+        <select className="text-input" value={muscle} onChange={(e) => setMuscle(e.target.value as MuscleGroup | '')}>
+          <option value="">Autre / non précisé</option>
+          {MUSCLE_ORDER.map((m) => (
+            <option key={m} value={m}>
+              {MUSCLE_LABELS[m]}
+            </option>
+          ))}
+        </select>
+        <span className="muted small">Sert au compte des séries par muscle (Progrès).</span>
+      </label>
       {type !== 'duration' && (
         <label className="field">
           <span className="field-label">{type === 'bodyweight' ? 'Pas du lest (kg)' : 'Pas de charge (kg)'}</span>

@@ -174,10 +174,30 @@ Le planning du jour dépend du type de journée (section 2).
 - Carte sur Aujourd'hui, 6 semaines après la première séance faite avec cette fonction (ou après la dernière semaine allégée), ou plus tôt si 3 exercices ou plus stagnent. « Activer » ou « Plus tard » (revient 3 jours après).
 - Active 7 jours (arrêtable avant) : moitié moins de séries (arrondi au supérieur), mêmes charges, RIR 3-4. Ces séances sont marquées « allégée » : elles comptent dans le calendrier et les records, mais pas dans l'objectif du jour ni la stagnation.
 
+### Mensurations (Mon année)
+- Bras (contracté), poitrine, épaules, taille (au nombril), cuisse, en cm, chacune facultative. Une mesure par jour au plus (la dernière remplace), pré-remplie avec la précédente, avec la méthode rappelée.
+- Dernière valeur et écart depuis la première mesure, rapport **épaules / taille** (proportions « en V »), courbe par mesure, liste modifiable et supprimable.
+- Rappel discret au-delà de 30 jours sans mesure.
+
+### Photos d'évolution (Mon année)
+- Ajout depuis l'appareil photo ou la photothèque, pose **Face / Profil / Dos**, date modifiable. Réduite à 1280 px (JPEG) pour rester légère.
+- Vignettes rangées par mois, agrandissement et suppression (avec confirmation), **comparaison côte à côte** de deux dates pour une même pose.
+- Les photos restent uniquement sur le téléphone et sont incluses dans l'export (la place prise est affichée).
+
+### Séries par muscle (Progrès)
+- Carte sous le graphique des séances par semaine : séries de travail (sans échauffements) par muscle, **semaine en cours** ou **moyenne des 4 dernières semaines terminées** (seulement depuis la première séance).
+- Repère indicatif 10 à 20 séries par semaine et par muscle (hors abdos) ; un muscle sous 10 en moyenne est marqué « en retard ».
+- Chaque exercice a un **muscle principal** (Dos, Pecs, Épaules, Biceps, Triceps, Quadriceps, Ischios-fessiers, Mollets, Abdos), modifiable dans sa fiche ; sans muscle, il compte dans « Autre ».
+
+### Bilan du mois (Progrès)
+- Lien « Bilan d'octobre » sous le calendrier (suit le mois affiché) ; carte « Ton bilan d'octobre est prêt » sur Aujourd'hui les 7 premiers jours du mois suivant, jusqu'à ce qu'il soit vu ou fermé.
+- Contenu calculé à partir des données : séances (et écart avec le mois d'avant), répartition par type, semaines à 3 séances ou plus, temps à la salle, foot/tennis, semaine allégée, séries de travail, volume, records battus, les 3 exercices qui progressent le plus (1RM estimé, reps au poids du corps, secondes en durée), séries par muscle, poids (moyenne 7 jours) en début et fin de mois, dernières mensurations comparées aux précédentes, photos du mois.
+
 ### Données
 - Version 6 de la base : table `activities` (foot/tennis), `warmup` sur les séries, `deload` sur les séances, `compound` (polyarticulaire) sur les exercices, réglages `featureStartAt`, `deloadPeriods`, `deloadSnoozedUntil`. La migration ne perd rien ; l'export inclut tout et les anciens exports sont convertis à l'import.
+- Version 7 (étape 9) : tables `measurements` (une ligne par jour) et `photos` (image JPEG en texte, date, pose), `muscle` sur les exercices (rempli par la migration sans écraser un choix existant), réglage `monthlyReviewSeen`. Même règle : migration sans perte, export complet, anciens exports convertis à l'import.
 
 ## Plus tard (pas dans la première version)
 - ~~Suggestion d'augmenter la charge quand toutes les reps sont réussies.~~ Fait : objectif du jour (section 8).
 - ~~Calendrier de régularité.~~ Fait : section 8.
-- Mensurations.
+- ~~Mensurations.~~ Fait : section 8.

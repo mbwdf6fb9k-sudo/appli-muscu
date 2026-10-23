@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart } from '../components/charts/BarChart'
+import { MuscleVolume } from '../components/MuscleVolume'
 import { RegularityCalendar } from '../components/RegularityCalendar'
 import { ComingSoon } from '../components/ComingSoon'
 import { ChevronRightIcon, ProgressIcon, TrophyIcon } from '../components/icons'
@@ -95,6 +96,8 @@ export function Progres() {
           unit={(n) => plural(n, 'séance')}
         />
       </div>
+
+      <MuscleVolume sessions={sessions} exercisesById={exercisesById} now={now} />
 
       <div className="segmented progress-switch" role="group" aria-label="Affichage">
         <button aria-pressed={view === 'historique'} onClick={() => setView('historique')}>

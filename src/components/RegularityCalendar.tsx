@@ -6,6 +6,7 @@ import type { DeloadPeriod } from '../db/settings'
 import { TEMPLATE_NAMES } from '../db/seed'
 import { localDateStamp } from '../lib/dates'
 import { inDeload } from '../lib/deload'
+import { monthKey, ofMonth } from '../lib/monthlyReview'
 import { formatDuration } from '../lib/format'
 import { startOfWeek } from '../lib/progress'
 import { sessionStats } from '../lib/sessionStats'
@@ -153,6 +154,14 @@ export function RegularityCalendar({ sessions, deloadPeriods, now }: Props) {
           <span className="legend-deload" /> Semaine allégée
         </span>
       </div>
+
+      {monthKey(month) <= monthKey(now) && (
+        <Link className="calendar-review" to={`/progres/bilan/${monthKey(month)}`}>
+          Bilan {ofMonth(monthKey(month))}
+          {monthKey(month) === monthKey(now) && <span className="muted small"> · en cours</span>}
+          <ChevronRightIcon />
+        </Link>
+      )}
 
       {opened && (
         <DaySheet

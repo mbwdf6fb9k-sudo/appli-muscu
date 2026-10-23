@@ -5,6 +5,7 @@ import { db } from './db/database'
 import { useSettings } from './db/settings'
 import { useApplyTheme } from './lib/theme'
 import { Aujourdhui } from './screens/Aujourdhui'
+import { BilanMois } from './screens/BilanMois'
 import { Complements } from './screens/Complements'
 import { ComplementsListe } from './screens/ComplementsListe'
 import { ExerciceProgres } from './screens/ExerciceProgres'
@@ -51,6 +52,7 @@ function Layout() {
         <Route path="/progres" element={<Progres />} />
         <Route path="/progres/seance/:id" element={<SeanceResume key="history" mode="history" />} />
         <Route path="/progres/exercice/:id" element={<ExerciceProgres />} />
+        <Route path="/progres/bilan/:mois" element={<BilanMois />} />
         <Route path="/annee" element={<MonAnnee />} />
         <Route path="/complements" element={<Complements />} />
         <Route path="/complements/liste" element={<ComplementsListe />} />

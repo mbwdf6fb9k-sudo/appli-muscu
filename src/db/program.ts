@@ -1,4 +1,4 @@
-import type { Exercise, ExerciseTips, Target, Template, TemplateId } from './database'
+import type { Exercise, ExerciseTips, MuscleGroup, Target, Template, TemplateId } from './database'
 
 /**
  * Le programme personnel (programme-muscu.md), écrit une seule fois.
@@ -343,5 +343,52 @@ export function applyExerciseDefaults(exercises: Exercise[]): Exercise[] {
     if (DUMBBELL_IDS.includes(next.id) && next.step === undefined) next.step = DUMBBELL_STEP
     if (COMPOUND_IDS.includes(next.id) && next.compound === undefined) next.compound = true
     return next
+  })
+}
+
+/** Muscle principal de chaque exercice du programme (compte des séries par muscle). */
+const MUSCLES: Record<MuscleGroup, string[]> = {
+  dos: [
+    'tractions',
+    'tirage-vertical',
+    'tirage-vertical-unilateral',
+    'rowing-barre',
+    'rowing-haltere',
+    'rowing-poitrine-appuyee',
+    'tirage-horizontal-assis',
+    'pull-over-poulie',
+    'shrugs',
+  ],
+  pecs: ['developpe-couche-barre', 'developpe-incline-halteres', 'ecarte-poulie-vis-a-vis', 'dips'],
+  epaules: [
+    'developpe-militaire-halteres',
+    'elevations-laterales',
+    'elevations-laterales-poulie',
+    'oiseau-reverse-pec-deck',
+    'face-pull',
+  ],
+  biceps: ['curl-barre-ez', 'curl-incline-halteres', 'curl-marteau', 'curl-pupitre', 'curl-halteres'],
+  triceps: [
+    'extension-triceps-poulie-haute-corde',
+    'barre-au-front',
+    'extension-triceps-au-dessus-de-la-tete',
+    'extension-triceps-poulie',
+    'kickback',
+  ],
+  quadriceps: ['squat', 'hack-squat', 'presse-a-cuisses', 'fentes-bulgares', 'leg-extension'],
+  ischios: ['leg-curl', 'souleve-de-terre-roumain', 'hip-thrust'],
+  mollets: ['mollets-debout', 'mollets-presse'],
+  abdos: ['crunch-poulie', 'releves-de-jambes-suspendu', 'roue-abdominale', 'gainage'],
+}
+
+export const DEFAULT_MUSCLE: Record<string, MuscleGroup> = Object.fromEntries(
+  (Object.entries(MUSCLES) as [MuscleGroup, string[]][]).flatMap(([muscle, ids]) => ids.map((id) => [id, muscle])),
+)
+
+/** Étape 9 : muscle principal par défaut. Ne remplace jamais un muscle déjà choisi. */
+export function applyMuscleDefaults(exercises: Exercise[]): Exercise[] {
+  return exercises.map((exercise) => {
+    const muscle = DEFAULT_MUSCLE[exercise.id]
+    return muscle && exercise.muscle === undefined ? { ...exercise, muscle } : exercise
   })
 }

@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable, type Transaction } from 'dexie'
-import { applyExerciseDefaults, applyProgram } from './program'
+import { applyExerciseDefaults, applyMuscleDefaults, applyProgram } from './program'
 import { DEFAULT_EXERCISES, DEFAULT_SUPPLEMENTS, DEFAULT_TEMPLATES } from './seed'
 
 export interface SettingRow {
@@ -28,7 +28,20 @@ export interface Exercise {
   tips?: ExerciseTips
   /** Polyarticulaire : série d'échauffement proposée aussi en 2e exercice */
   compound?: boolean
+  /** Muscle principal : compte des séries par muscle */
+  muscle?: MuscleGroup
 }
+
+export type MuscleGroup =
+  | 'dos'
+  | 'pecs'
+  | 'epaules'
+  | 'biceps'
+  | 'triceps'
+  | 'quadriceps'
+  | 'ischios'
+  | 'mollets'
+  | 'abdos'
 
 /** Objectif d'un exercice dans un modèle : séries × fourchette (reps, ou secondes pour la durée). */
 export interface Target {
@@ -148,8 +161,30 @@ export interface Activity {
   type: ActivityType
 }
 
+export type MeasureKey = 'bras' | 'poitrine' | 'epaules' | 'taille' | 'cuisse'
+
+/** Mensurations d'un jour (cm), chacune facultative. */
+export interface Measurement extends Partial<Record<MeasureKey, number>> {
+  /** AAAA-MM-JJ (heure locale) : une seule mesure par jour */
+  date: string
+}
+
+export type PhotoPose = 'face' | 'profil' | 'dos'
+
+/** Photo d'évolution, gardée uniquement sur le téléphone. */
+export interface Photo {
+  id: string
+  /** AAAA-MM-JJ */
+  date: string
+  pose: PhotoPose
+  /** Image JPEG réduite, en « data:image/jpeg;base64,… » (incluse telle quelle dans l'export) */
+  dataUrl: string
+  width: number
+  height: number
+}
+
 /** Version actuelle du schéma (la plus haute déclarée ci-dessous). */
-export const SCHEMA_VERSION = 6
+export const SCHEMA_VERSION = 7
 
 export class MuscuDB extends Dexie {
   settings!: EntityTable<SettingRow, 'key'>
@@ -161,6 +196,8 @@ export class MuscuDB extends Dexie {
   supplements!: EntityTable<Supplement, 'id'>
   intakes!: EntityTable<Intake, 'id'>
   activities!: EntityTable<Activity, 'id'>
+  measurements!: EntityTable<Measurement, 'date'>
+  photos!: EntityTable<Photo, 'id'>
 
   constructor(name = 'appli-muscu') {
     super(name)
@@ -205,12 +242,21 @@ export class MuscuDB extends Dexie {
       })
       .upgrade(applyExerciseDefaultsToDb)
 
+    // Étape 9 : mensurations, photos d'évolution et muscle principal des exercices
+    this.version(7)
+      .stores({
+        measurements: 'date',
+        photos: 'id, date',
+      })
+      .upgrade(applyMuscleDefaultsToDb)
+
     // Base toute neuve : exercices, compléments et programme par défaut
     this.on('populate', async (tx) => {
       await seedDefaults(tx)
       await seedSupplements(tx)
       await applyProgramToDb(tx)
       await applyExerciseDefaultsToDb(tx)
+      await applyMuscleDefaultsToDb(tx)
     })
   }
 }
@@ -228,6 +274,10 @@ async function applyProgramToDb(tx: Transaction): Promise<void> {
 
 async function applyExerciseDefaultsToDb(tx: Transaction): Promise<void> {
   await tx.table('exercises').bulkPut(applyExerciseDefaults(await tx.table('exercises').toArray()))
+}
+
+async function applyMuscleDefaultsToDb(tx: Transaction): Promise<void> {
+  await tx.table('exercises').bulkPut(applyMuscleDefaults(await tx.table('exercises').toArray()))
 }
 
 async function seedSupplements(tx: Transaction): Promise<void> {

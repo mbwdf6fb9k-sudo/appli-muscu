@@ -27,6 +27,8 @@ export interface Settings {
   deloadPeriods: DeloadPeriod[]
   /** « Plus tard » sur la suggestion de semaine allégée */
   deloadSnoozedUntil: string | null
+  /** Dernier bilan du mois vu ou fermé (AAAA-MM) : carte d'Aujourd'hui */
+  monthlyReviewSeen: string | null
 }
 
 export interface DeloadPeriod {
@@ -51,6 +53,7 @@ export const DEFAULT_SETTINGS: Settings = {
   featureStartAt: null,
   deloadPeriods: [],
   deloadSnoozedUntil: null,
+  monthlyReviewSeen: null,
 }
 
 export async function readSettings(database: MuscuDB = db): Promise<Settings> {

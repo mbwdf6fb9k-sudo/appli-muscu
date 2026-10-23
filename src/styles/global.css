@@ -2619,3 +2619,409 @@ p {
     transition: none !important;
   }
 }
+
+/* ============ Étape 9 : listes déroulantes ============ */
+select.text-input {
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%23959ca5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ============ Mensurations ============ */
+.measure-reminder {
+  margin-bottom: 8px;
+}
+
+.measure-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.measure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 12px 10px;
+}
+
+.measure-item {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.measure-label {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.measure-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.measure-ratio {
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.measure-chart {
+  margin-top: 8px;
+}
+
+.segmented-scroll {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.segmented-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.segmented-scroll button {
+  flex: 1 0 auto;
+  padding: 0 10px;
+  font-size: 14px;
+}
+
+.measure-row {
+  flex-wrap: wrap;
+  row-gap: 2px;
+  cursor: pointer;
+}
+
+.measure-row-values {
+  text-align: right;
+}
+
+.measure-method {
+  margin-bottom: 12px;
+}
+
+.list-card + .show-all,
+.measure-chart + .list-card {
+  margin-top: 8px;
+}
+
+/* ============ Photos d'évolution ============ */
+.photos-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.photos-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.photos-actions .btn {
+  flex: 1 1 140px;
+}
+
+.photo-month-title {
+  margin: 4px 0 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.photo-thumb {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--surface-2);
+  cursor: pointer;
+}
+
+.photo-thumb img,
+.review-photos img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.review-photos img {
+  aspect-ratio: 3 / 4;
+  border-radius: 10px;
+}
+
+.review-photos {
+  margin-top: 8px;
+}
+
+.photo-pose {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.62);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.photos-size {
+  text-align: center;
+}
+
+.photo-preview,
+.photo-full {
+  display: block;
+  width: 100%;
+  max-height: 52vh;
+  object-fit: contain;
+  margin-bottom: 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.photo-full {
+  max-height: 64vh;
+}
+
+.photo-date {
+  margin-top: 14px;
+}
+
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin: 14px 0;
+}
+
+.compare-grid figure {
+  margin: 0;
+}
+
+.compare-grid img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.compare-grid figcaption {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ============ Séries par muscle ============ */
+.muscle-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.muscle-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.segmented button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.muscle-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.muscle-row {
+  display: grid;
+  grid-template-columns: 112px 1fr 34px;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.muscle-name {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.muscle-late {
+  color: var(--accent-text);
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.muscle-track {
+  position: relative;
+  height: 18px;
+}
+
+.muscle-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+}
+
+.muscle-bar {
+  position: absolute;
+  left: 0;
+  top: 4px;
+  height: 10px;
+  border-radius: 0 4px 4px 0;
+  background: var(--chart);
+  max-width: 100%;
+}
+
+.muscle-value {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.muscle-legend {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+}
+
+.muscle-band-swatch {
+  flex: none;
+  width: 18px;
+  height: 12px;
+  margin-top: 3px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border);
+}
+
+/* ============ Bilan du mois ============ */
+.calendar-review {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 48px;
+  margin-top: 10px;
+  padding: 0 4px;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.calendar-review > .muted {
+  margin-right: auto;
+  font-weight: 400;
+}
+
+.calendar-review svg {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+
+.review-row {
+  cursor: default;
+}
+
+.review-row:active {
+  opacity: 1;
+}
+
+.review-sub {
+  display: block;
+}
+
+.review-record {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-value {
+  flex: none;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.review-muscles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.review-card {
+  position: relative;
+}
+
+.review-card .deload-text {
+  padding-right: 28px;
+}
+
+.review-card-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  color: var(--text-muted);
+}
+
+a.btn {
+  text-decoration: none;
+}
+
+.photos-actions {
+  flex-direction: column;
+}
+
+.photos-actions .btn {
+  flex: none;
+}
+
+.muscle-bar {
+  min-width: 4px;
+}

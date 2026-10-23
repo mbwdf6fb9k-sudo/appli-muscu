@@ -1,5 +1,14 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type Exercise, type ExerciseTips, type ExerciseType, type Target, type Template, type TemplateId } from './database'
+import {
+  db,
+  type Exercise,
+  type ExerciseTips,
+  type ExerciseType,
+  type MuscleGroup,
+  type Target,
+  type Template,
+  type TemplateId,
+} from './database'
 
 export function useExercises(): Exercise[] | undefined {
   return useLiveQuery(() => db.exercises.orderBy('name').toArray())
@@ -25,7 +34,7 @@ export async function createExercise(name: string, type: ExerciseType): Promise<
 
 export async function updateExercise(
   id: string,
-  changes: Pick<Exercise, 'name' | 'type'> & { step?: number; tips?: ExerciseTips; compound?: boolean },
+  changes: Pick<Exercise, 'name' | 'type'> & { step?: number; tips?: ExerciseTips; compound?: boolean; muscle?: MuscleGroup | null },
 ) {
   await db.transaction('rw', db.exercises, async () => {
     const exercise = await db.exercises.get(id)
@@ -36,6 +45,11 @@ export async function updateExercise(
     if (changes.compound !== undefined) {
       if (changes.compound) next.compound = true
       else delete next.compound
+    }
+    // null = aucun muscle (compté dans « Autre ») ; undefined = inchangé
+    if (changes.muscle !== undefined) {
+      if (changes.muscle) next.muscle = changes.muscle
+      else delete next.muscle
     }
     if (changes.tips) {
       const tips = Object.fromEntries(

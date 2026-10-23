@@ -142,3 +142,17 @@ export const ShieldIcon = () => (
     <path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z" />
   </Icon>
 )
+
+export const CameraIcon = () => (
+  <Icon>
+    <path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.8l1.4-2h4.6l1.4 2h1.8A2.5 2.5 0 0 1 20 8.5v8a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5z" />
+    <circle cx="12" cy="12.5" r="3.5" />
+  </Icon>
+)
+
+export const CompareIcon = () => (
+  <Icon>
+    <rect x="3.5" y="4.5" width="7" height="15" rx="1.5" />
+    <rect x="13.5" y="4.5" width="7" height="15" rx="1.5" />
+  </Icon>
+)

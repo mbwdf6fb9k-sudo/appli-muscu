@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { LineChart } from '../components/charts/LineChart'
 import { CheckIcon } from '../components/icons'
+import { Measurements } from '../components/Measurements'
+import { Photos } from '../components/Photos'
 import { Screen, SettingsLink } from '../components/Screen'
 import { Sheet } from '../components/Sheet'
 import { Stepper } from '../components/Stepper'
 import type { WeighIn } from '../db/database'
 import { setSetting, useSettings, type Settings } from '../db/settings'
+import { useMeasurements } from '../db/measurements'
+import { usePhotos } from '../db/photos'
 import { deleteWeighIn, saveWeighIn, useWeighIns } from '../db/weighIns'
 import { localDateStamp } from '../lib/dates'
 import { formatNumber, formatShortDate, parseNumber } from '../lib/format'
@@ -38,13 +42,15 @@ function readRange(): WeightRange {
 export function MonAnnee() {
   const settings = useSettings()
   const weighIns = useWeighIns()
+  const measurements = useMeasurements()
+  const photos = usePhotos()
   const now = useNow(60_000)
   const [range, setRangeState] = useState<WeightRange>(readRange)
   const [editing, setEditing] = useState<WeighIn | null>(null)
   const [showAll, setShowAll] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
 
-  if (!settings || !weighIns) return null
+  if (!settings || !weighIns || !measurements || !photos) return null
 
   const today = localDateStamp(now)
   const summary = weightSummary(weighIns, settings)
@@ -142,6 +148,9 @@ export function MonAnnee() {
       ) : (
         <p className="muted hint">Pèse-toi pour commencer ta courbe : une pesée par jour suffit, idéalement le matin.</p>
       )}
+
+      <Measurements measurements={measurements} today={today} now={now} />
+      <Photos photos={photos} today={today} />
 
       <h2 className="section-title">Profil et objectif</h2>
       <div className="card profile-card">
