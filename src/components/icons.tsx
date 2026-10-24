@@ -156,3 +156,9 @@ export const CompareIcon = () => (
     <rect x="13.5" y="4.5" width="7" height="15" rx="1.5" />
   </Icon>
 )
+
+export const DropIcon = () => (
+  <Icon>
+    <path d="M6 6l11 11M17 9v8H9" />
+  </Icon>
+)

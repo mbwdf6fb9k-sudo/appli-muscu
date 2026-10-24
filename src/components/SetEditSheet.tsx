@@ -47,6 +47,8 @@ interface SetEditSheetProps {
   onSave: (values: SetValues) => void
   /** Absent pour l'ajout d'une nouvelle série */
   onDelete?: () => void
+  /** La série suit une série de travail : elle peut en devenir la suite dégressive */
+  canDrop?: boolean
 }
 
 /** Corriger (ou ajouter) une série. */
@@ -61,11 +63,25 @@ export function SetEditSheet(props: SetEditSheetProps) {
             type="checkbox"
             role="switch"
             checked={!!values.warmup}
-            onChange={(e) => setValues({ ...values, warmup: e.target.checked })}
+            onChange={(e) => setValues({ ...values, warmup: e.target.checked, drop: e.target.checked ? undefined : values.drop })}
           />
           <span>
             Série d’échauffement
             <span className="muted small"> : hors objectif, records, volume et stagnation</span>
+          </span>
+        </label>
+      )}
+      {props.onDelete && props.type !== 'duration' && (props.canDrop || values.drop) && (
+        <label className="check-field warmup-toggle">
+          <input
+            type="checkbox"
+            role="switch"
+            checked={!!values.drop}
+            onChange={(e) => setValues({ ...values, drop: e.target.checked, warmup: e.target.checked ? undefined : values.warmup })}
+          />
+          <span>
+            Dégressive de la série d’avant
+            <span className="muted small"> : même série, charge baissée sans pause (compte seulement dans le volume)</span>
           </span>
         </label>
       )}

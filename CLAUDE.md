@@ -138,7 +138,7 @@ Le planning du jour dépend du type de journée (section 2).
 
 ### Programme personnalisé (étape 7)
 - Les modèles suivent `programme-muscu.md` : Dos-Biceps, Pecs-Triceps, **Jambes + rappel dos et épaules**, **Bras + épaules**, Abdos.
-- Chaque exercice d'un modèle a un **objectif** : séries × fourchette de reps (ou de secondes), RIR, repos conseillé (affiché seulement, pas de minuteur), superset éventuel (A1/A2…).
+- Chaque exercice d'un modèle a un **objectif** : séries × fourchette de reps (ou de secondes), reps qu'il doit rester en fin de série (le « RIR » du programme, affiché en clair : « Arrête la série quand tu pourrais encore faire 1 à 2 reps. »), repos conseillé (affiché seulement, pas de minuteur), superset éventuel (A1/A2…).
 - Chaque exercice a des **consignes** (technique, erreurs, remplacement), repliées derrière « Consignes » pendant la séance.
 - Aujourd'hui affiche la durée de chaque séance et des conseils de placement (Jambes : pas la veille du foot ; Bras : pas le lendemain de Dos-Biceps ou Pecs-Triceps).
 - Tout est modifiable dans Réglages → Exercices et modèles, qui rappelle aussi les règles du programme.
@@ -156,14 +156,20 @@ Le planning du jour dépend du type de journée (section 2).
   2. au moins la moitié des séries sous le bas → baisser de 10 % (arrondi au palier) ;
   3. sinon → même charge, +1 rep sur les séries qui n'étaient pas au haut.
 - Poids du corps : +2,5 kg de lest quand tout est au haut (jamais de baisse sans lest). Durée : +5 s.
-- Première fois : « trouve une charge qui te laisse 2-3 reps en réserve ». Les reps et kg sont pré-remplis série par série avec l'objectif ; c'est une suggestion.
-- Pendant les 14 jours qui suivent la mise en place de la fonction : bandeau « Semaines 1-2 : trouve tes charges en gardant 2-3 reps en réserve ».
+- Première fois : « choisis une charge où tu pourrais encore faire 2 à 3 reps à la fin de la série ». Les reps et kg sont pré-remplis série par série avec l'objectif ; c'est une suggestion.
+- Pendant les 14 jours qui suivent la mise en place de la fonction : bandeau « Semaines 1-2 : trouve tes charges. Arrête chaque série quand tu pourrais encore faire 2 à 3 reps. »
 - **Paliers** : barre, machine, poulie et lest 2,5 kg ; haltères 2 kg. Modifiable par exercice (sa fiche dans les Réglages) ; c'est aussi le pas des boutons + / − du champ kg.
 
 ### Séries d'échauffement
 - Proposées automatiquement sur le 1er exercice (≈ 50 % × 10, 70 % × 5, 85 % × 3) et sur le 2e s'il est **polyarticulaire** (70 % × 5), d'après la charge de travail du jour, arrondies au palier. Pas proposées au poids du corps sans lest ni en durée.
 - Toute série peut devenir un échauffement (et inversement) depuis son panneau.
 - Affichées plus discrètement (« É ») ; elles ne comptent ni dans l'objectif du jour, ni dans les records, ni dans le volume, ni dans le nombre de séries, ni dans la stagnation. Les séances enregistrées avant cette fonction sont 100 % séries de travail.
+
+### Séries dégressives
+- Après une série validée, baisser la charge puis « En dégressive de la série N » : la suite est rattachée à la même série, affichée « ↘ » et dans les lignes « 10 × 20 → 5 × 15 kg ». Plusieurs descentes possibles ; pas en durée.
+- Toute série qui suit une série de travail peut devenir dégressive (et inversement) depuis son panneau, aussi dans une séance terminée.
+- Une dégressive compte dans le volume, mais pas dans le nombre de séries, l'objectif du jour, les records, la stagnation, les séries par muscle ni le bilan. Si sa série principale est supprimée ou passée en échauffement, elle redevient une série normale.
+- Les termes techniques sont évités dans l'appli : pas de « RIR », la consigne est écrite en clair.
 
 ### Repère de stagnation
 - Un exercice est en stagnation quand aucune de ses **3 dernières séances** (de travail, hors semaine allégée) ne bat la meilleure performance des séances d'avant.
@@ -172,7 +178,7 @@ Le planning du jour dépend du type de journée (section 2).
 
 ### Semaine allégée
 - Carte sur Aujourd'hui, 6 semaines après la première séance faite avec cette fonction (ou après la dernière semaine allégée), ou plus tôt si 3 exercices ou plus stagnent. « Activer » ou « Plus tard » (revient 3 jours après).
-- Active 7 jours (arrêtable avant) : moitié moins de séries (arrondi au supérieur), mêmes charges, RIR 3-4. Ces séances sont marquées « allégée » : elles comptent dans le calendrier et les records, mais pas dans l'objectif du jour ni la stagnation.
+- Active 7 jours (arrêtable avant) : moitié moins de séries (arrondi au supérieur), mêmes charges, arrêt de chaque série quand il reste 3 à 4 reps possibles. Ces séances sont marquées « allégée » : elles comptent dans le calendrier et les records, mais pas dans l'objectif du jour ni la stagnation.
 
 ### Mensurations (Mon année)
 - Bras (contracté), poitrine, épaules, taille (au nombril), cuisse, en cm, chacune facultative. Une mesure par jour au plus (la dernière remplace), pré-remplie avec la précédente, avec la méthode rappelée.
@@ -196,6 +202,7 @@ Le planning du jour dépend du type de journée (section 2).
 ### Données
 - Version 6 de la base : table `activities` (foot/tennis), `warmup` sur les séries, `deload` sur les séances, `compound` (polyarticulaire) sur les exercices, réglages `featureStartAt`, `deloadPeriods`, `deloadSnoozedUntil`. La migration ne perd rien ; l'export inclut tout et les anciens exports sont convertis à l'import.
 - Version 7 (étape 9) : tables `measurements` (une ligne par jour) et `photos` (image JPEG en texte, date, pose), `muscle` sur les exercices (rempli par la migration sans écraser un choix existant), réglage `monthlyReviewSeen`. Même règle : migration sans perte, export complet, anciens exports convertis à l'import.
+- Étape 10 : champ facultatif `drop` sur les séries (suite dégressive). Les séries existantes n'ont pas ce champ et restent des séries normales : pas de nouvelle version de la base.
 
 ## Plus tard (pas dans la première version)
 - ~~Suggestion d'augmenter la charge quand toutes les reps sont réussies.~~ Fait : objectif du jour (section 8).

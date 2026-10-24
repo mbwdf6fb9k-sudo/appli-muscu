@@ -114,7 +114,7 @@ export function ExerciceProgres() {
                   <span className="history-name">
                     {new Date(h.startedAt).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}
                   </span>
-                  <span className="muted small">{formatSetsLine(h.type, h.sets)}</span>
+                  <span className="muted small">{formatSetsLine(h.type, h.shown)}</span>
                 </span>
                 <ChevronRightIcon />
               </Link>

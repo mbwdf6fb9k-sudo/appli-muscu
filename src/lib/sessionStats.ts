@@ -1,11 +1,11 @@
 import type { Session } from '../db/database'
-import { workSets } from './sets'
+import { effortSets, workSets } from './sets'
 
 export interface SessionStats {
   durationMs: number
   /** Séries de travail (sans les échauffements) */
   setCount: number
-  /** Somme kg × reps des séries de travail (lest pour le poids du corps ; le gainage ne compte pas) */
+  /** Somme kg × reps des séries de travail et de leurs dégressives (lest pour le poids du corps ; le gainage ne compte pas) */
   volume: number
 }
 
@@ -14,10 +14,9 @@ export function sessionStats(session: Session, now = new Date()): SessionStats {
   let setCount = 0
   let volume = 0
   for (const exercise of session.exercises) {
-    const sets = workSets(exercise.sets)
-    setCount += sets.length
+    setCount += workSets(exercise.sets).length
     if (exercise.type === 'duration') continue
-    for (const set of sets) volume += (set.kg ?? 0) * (set.reps ?? 0)
+    for (const set of effortSets(exercise.sets)) volume += (set.kg ?? 0) * (set.reps ?? 0)
   }
   return {
     durationMs: Math.max(0, end.getTime() - new Date(session.startedAt).getTime()),

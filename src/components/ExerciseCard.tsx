@@ -2,13 +2,13 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
 import type { Exercise, ExerciseTips, Session, SessionExercise } from '../db/database'
 import { addSet, deleteSet, previousSets, setNote, updateSet, useLastPerformance } from '../db/sessions'
-import { formatSet, formatSetsLine, formatShortDate, formatTarget } from '../lib/format'
+import { effortText, formatSet, formatSetsLine, formatShortDate, formatTarget } from '../lib/format'
 import { haptic } from '../lib/haptics'
 import { dailyObjective, warmupSets } from '../lib/objective'
 import { prefillNextSet, type SetValues } from '../lib/prefill'
 import { liveRecords, type BrokenRecord } from '../lib/records'
-import { workSets } from '../lib/sets'
-import { CheckIcon, ChevronDownIcon, CopyIcon, InfoIcon, PlusIcon, TrophyIcon } from './icons'
+import { canBeDrop, effortSets, setLabel, setTitle, workSets } from '../lib/sets'
+import { CheckIcon, ChevronDownIcon, CopyIcon, DropIcon, InfoIcon, PlusIcon, TrophyIcon } from './icons'
 import { SetEditSheet, SetInputs, withoutTime } from './SetEditSheet'
 
 interface ExerciseCardProps {
@@ -39,7 +39,8 @@ export function ExerciseCard(props: ExerciseCardProps) {
   const { session, index, entry, exercise, open, onToggle, defaultStep, onRecord, superset } = props
   const name = exercise?.name ?? 'Exercice supprimé'
   const work = workSets(entry.sets)
-  const summary = work.length > 0 ? formatSetsLine(entry.type, work) : entry.target ? formatTarget(entry.type, entry.target) : null
+  const summary =
+    work.length > 0 ? formatSetsLine(entry.type, effortSets(entry.sets)) : entry.target ? formatTarget(entry.type, entry.target) : null
 
   return (
     <section className={open ? 'exercise-card open' : 'exercise-card'}>
@@ -121,7 +122,7 @@ function ExerciseBody(props: ExerciseBodyProps) {
   const objective = loading ? null : dailyObjective(entry.type, objectiveSets, target, step, !!session.deload)
 
   const work = workSets(entry.sets)
-  const warmups = entry.sets.length - work.length
+  const warmups = entry.sets.filter((s) => s.warmup).length
 
   // Valeurs proposées : recalculées dès qu'une série est ajoutée ou que l'historique est chargé
   const prefillKey = `${entry.sets.length}|${loading ? 'loading' : `${last?.date ?? 'none'}|${lastNormal?.date ?? 'none'}`}`
@@ -133,9 +134,8 @@ function ExerciseBody(props: ExerciseBodyProps) {
   // Échauffement proposé d'après la charge de travail du champ kg (pré-rempli avec l'objectif)
   const proposals = warmupPosition && work.length === 0 ? warmupSets(entry.type, draft.values.kg ?? 0, step, warmupPosition) : []
   const lastWork = work.at(-1)
-
-  // Numéro des séries de travail (les échauffements sont marqués « É »)
-  let workNumber = 0
+  // Dégressive : seulement juste après une série de travail (ou une autre dégressive), jamais en durée
+  const dropOf = entry.type !== 'duration' && canBeDrop(entry.sets, entry.sets.length) ? work.length : null
 
   return (
     <div className="exercise-body">
@@ -143,7 +143,6 @@ function ExerciseBody(props: ExerciseBodyProps) {
         <div className="target-row">
           <span className="target-text">
             <strong>{formatTarget(entry.type, target)}</strong>
-            {target.rir && ` · RIR ${target.rir}`}
             {target.rest && ` · repos ${target.rest}`}
           </span>
           <span className={work.length >= target.sets ? 'target-progress done' : 'target-progress'}>
@@ -151,6 +150,7 @@ function ExerciseBody(props: ExerciseBodyProps) {
           </span>
         </div>
       )}
+      {target?.rir && <p className="effort-hint">{effortText(target.rir)}</p>}
       {superset && (
         <p className="hint-chip">
           Superset {superset.label} :{' '}
@@ -211,13 +211,15 @@ function ExerciseBody(props: ExerciseBodyProps) {
       {entry.sets.length > 0 && (
         <ol className="set-list">
           {entry.sets.map((set, i) => {
-            const label = set.warmup ? 'É' : String(++workNumber)
+            const label = setLabel(entry.sets, i)
             return (
               <li key={set.at + i}>
                 <button
-                  className={['set-chip', set.warmup ? 'warmup' : '', records.has(i) ? 'record' : ''].join(' ').trim()}
+                  className={['set-chip', set.warmup ? 'warmup' : '', set.drop ? 'drop' : '', records.has(i) ? 'record' : '']
+                    .filter(Boolean)
+                    .join(' ')}
                   onClick={() => setEditing(i)}
-                  aria-label={`${set.warmup ? 'Échauffement' : `Série ${label}`} : ${formatSet(entry.type, set)}`}
+                  aria-label={`${setTitle(entry.sets, i)} : ${formatSet(entry.type, set)}`}
                 >
                   <span className="set-num">{label}</span>
                   {formatSet(entry.type, set)}
@@ -236,25 +238,35 @@ function ExerciseBody(props: ExerciseBodyProps) {
       <SetInputs type={entry.type} values={draft.values} onChange={setValues} step={step} />
 
       <div className="set-actions">
-        <button className="btn btn-primary" onClick={() => add({ ...draft.values, warmup: undefined })} aria-label="Valider la série">
+        <button className="btn btn-primary" onClick={() => add({ ...draft.values, warmup: undefined, drop: undefined })} aria-label="Valider la série">
           <CheckIcon /> Valider
         </button>
         <button
           className="btn btn-secondary btn-duplicate"
           disabled={!lastWork}
-          onClick={() => lastWork && add(withoutTime(lastWork))}
+          onClick={() => lastWork && add({ ...withoutTime(lastWork), drop: undefined })}
           aria-label="Dupliquer la série précédente"
         >
           <CopyIcon /> Dupliquer
         </button>
       </div>
+      {dropOf !== null && (
+        <button
+          className="btn btn-ghost btn-drop"
+          onClick={() => add({ ...draft.values, warmup: undefined, drop: true })}
+          aria-label={`Ajouter ${formatSet(entry.type, { ...draft.values, at: '' })} en dégressive de la série ${dropOf}`}
+        >
+          <DropIcon /> En dégressive de la série {dropOf}
+        </button>
+      )}
 
       <NoteField sessionId={session.id} index={index} initial={entry.note} />
 
       {editing !== null && entry.sets[editing] && (
         <SetEditSheet
           type={entry.type}
-          title={entry.sets[editing].warmup ? 'Série d’échauffement' : `Série ${workSets(entry.sets.slice(0, editing + 1)).length}`}
+          title={setTitle(entry.sets, editing)}
+          canDrop={canBeDrop(entry.sets, editing)}
           initial={withoutTime(entry.sets[editing])}
           step={step}
           onClose={() => setEditing(null)}

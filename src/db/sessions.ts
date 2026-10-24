@@ -11,7 +11,7 @@ import {
 import { setDayChoice } from './days'
 import { localDateStamp } from '../lib/dates'
 import { activeDeload, deloadTarget } from '../lib/deload'
-import { workSets } from '../lib/sets'
+import { effortSets, normalizeDrops, workSets } from '../lib/sets'
 import { readSettings } from './settings'
 
 export function useActiveSession(): Session | null | undefined {
@@ -53,7 +53,8 @@ export interface Performance {
 }
 
 /**
- * Les séries de travail de la dernière séance terminée où l'exercice a été fait.
+ * Les séries de travail (avec leurs dégressives, pour l'affichage) de la dernière séance terminée
+ * où l'exercice a été fait. L'objectif du jour et le pré-remplissage ne gardent que les séries de travail.
  * skipDeload : ignore les séances de semaine allégée (pour l'objectif du jour).
  */
 export async function lastPerformance(
@@ -68,7 +69,7 @@ export async function lastPerformance(
     .toArray()
   for (const session of sessions.sort((a, b) => b.startedAt.localeCompare(a.startedAt))) {
     const exercise = session.exercises.find((e) => e.exerciseId === exerciseId && workSets(e.sets).length > 0)
-    if (exercise) return { date: session.startedAt, type: exercise.type, sets: workSets(exercise.sets) }
+    if (exercise) return { date: session.startedAt, type: exercise.type, sets: effortSets(exercise.sets) }
   }
   return null
 }
@@ -138,25 +139,34 @@ async function updateSession(id: string, change: (session: Session) => void): Pr
 function cleanSet(values: Omit<SetEntry, 'at'>, at: string): SetEntry {
   const set: SetEntry = { ...values, at }
   if (!set.warmup) delete set.warmup
+  if (!set.drop) delete set.drop
   return set
 }
 
 export function addSet(id: string, exerciseIndex: number, values: Omit<SetEntry, 'at'>): Promise<void> {
   return updateSession(id, (s) => {
-    s.exercises[exerciseIndex]?.sets.push(cleanSet(values, new Date().toISOString()))
+    const exercise = s.exercises[exerciseIndex]
+    if (!exercise) return
+    exercise.sets.push(cleanSet(values, new Date().toISOString()))
+    exercise.sets = normalizeDrops(exercise.sets)
   })
 }
 
 export function updateSet(id: string, exerciseIndex: number, setIndex: number, values: Omit<SetEntry, 'at'>) {
   return updateSession(id, (s) => {
     const set = s.exercises[exerciseIndex]?.sets[setIndex]
-    if (set) s.exercises[exerciseIndex].sets[setIndex] = cleanSet(values, set.at)
+    if (!set) return
+    s.exercises[exerciseIndex].sets[setIndex] = cleanSet(values, set.at)
+    s.exercises[exerciseIndex].sets = normalizeDrops(s.exercises[exerciseIndex].sets)
   })
 }
 
 export function deleteSet(id: string, exerciseIndex: number, setIndex: number) {
   return updateSession(id, (s) => {
-    s.exercises[exerciseIndex]?.sets.splice(setIndex, 1)
+    const exercise = s.exercises[exerciseIndex]
+    if (!exercise) return
+    exercise.sets.splice(setIndex, 1)
+    exercise.sets = normalizeDrops(exercise.sets)
   })
 }
 

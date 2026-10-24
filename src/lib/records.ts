@@ -106,8 +106,8 @@ export function liveRecords(type: ExerciseType, history: SetEntry[], today: SetE
   const records = new Map<number, BrokenRecord[]>()
   if (workSets(history).length === 0) return records
   today.forEach((set, i) => {
-    // Une série d'échauffement ne bat jamais de record
-    if (set.warmup) return
+    // Une série d'échauffement ou une suite dégressive ne bat jamais de record
+    if (set.warmup || set.drop) return
     const broken = findBrokenRecords(type, [...history, ...today.slice(0, i)], [set])
     if (broken.length > 0) records.set(i, broken)
   })

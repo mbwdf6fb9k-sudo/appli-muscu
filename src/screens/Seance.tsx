@@ -163,10 +163,10 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
       ) : (
         <div className="exercise-list">
           {session.deload && (
-            <p className="hint-chip session-advice deload-hint">Séance allégée : moitié moins de séries, 3-4 reps en réserve.</p>
+            <p className="hint-chip session-advice deload-hint">Séance allégée : moitié moins de séries. Arrête chaque série quand tu pourrais encore faire 3 à 4 reps.</p>
           )}
           {firstWeeks && (
-            <p className="hint-chip session-advice">Semaines 1-2 : trouve tes charges en gardant 2-3 reps en réserve.</p>
+            <p className="hint-chip session-advice">Semaines 1-2 : trouve tes charges. Arrête chaque série quand tu pourrais encore faire 2 à 3 reps.</p>
           )}
           {template?.advice && <p className="hint-chip session-advice">{template.advice}</p>}
           {session.exercises.map((entry, index) => (

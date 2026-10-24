@@ -189,9 +189,9 @@ describe('objectif du jour', () => {
   })
 
   it('première fois et semaine allégée', () => {
-    expect(dailyObjective('weight', [], target, 2.5)!.text).toBe('Première fois : trouve une charge qui te laisse 2-3 reps en réserve')
+    expect(dailyObjective('weight', [], target, 2.5)!.text).toBe('Première fois : choisis une charge où tu pourrais encore faire 2 à 3 reps à la fin de la série')
     const o = dailyObjective('weight', [w(10, 50), w(9, 50), w(9, 50)], { ...target, sets: 2, rir: '3-4' }, 2.5, true)!
-    expect(o.text).toBe('Semaine allégée : même charge, 2 séries, 3-4 reps en réserve')
+    expect(o.text).toBe('Semaine allégée : même charge, 2 séries, arrête chaque série quand tu pourrais encore faire 3 à 4 reps')
     expect(o.plan).toEqual([{ reps: 10, kg: 50 }, { reps: 9, kg: 50 }])
   })
 

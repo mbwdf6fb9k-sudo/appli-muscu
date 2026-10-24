@@ -27,7 +27,7 @@ export function DeloadCard({ now }: { now: Date }) {
         <span className="deload-text">
           <span className="deload-title">Semaine allégée en cours</span>
           <span className="muted small">
-            Jusqu’au {dayLabel(active.end)} : moitié moins de séries, mêmes charges, 3-4 reps en réserve.
+            Jusqu’au {dayLabel(active.end)} : moitié moins de séries, mêmes charges, et tu arrêtes chaque série quand tu pourrais encore faire 3 à 4 reps.
           </span>
           <button className="btn btn-ghost btn-small deload-stop" onClick={() => setSetting('deloadPeriods', stopDeload(periods, today))}>
             Arrêter la semaine allégée

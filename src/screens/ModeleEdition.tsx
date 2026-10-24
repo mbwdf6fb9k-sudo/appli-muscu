@@ -9,7 +9,7 @@ import { Stepper } from '../components/Stepper'
 import type { Exercise, Target, TemplateId } from '../db/database'
 import { setTemplateExercises, setTemplateTarget, useExercisesById, useTemplate } from '../db/exercises'
 import { TEMPLATE_NAMES } from '../db/seed'
-import { formatTarget } from '../lib/format'
+import { effortShort, formatTarget } from '../lib/format'
 
 export function ModeleEdition() {
   const { id } = useParams()
@@ -37,7 +37,7 @@ export function ModeleEdition() {
     const target = template.targets?.[exercise.id]
     if (!target) return `${TYPE_LABELS[exercise.type]} · pas d’objectif`
     const parts = [formatTarget(exercise.type, target)]
-    if (target.rir) parts.push(`RIR ${target.rir}`)
+    if (target.rir) parts.push(effortShort(target.rir))
     if (target.superset) parts.push(`superset ${target.superset}`)
     return parts.join(' · ')
   }
@@ -93,7 +93,7 @@ export function ModeleEdition() {
   )
 }
 
-/** Objectifs d'un exercice dans le modèle : séries, fourchette, RIR, repos, superset. */
+/** Objectifs d'un exercice dans le modèle : séries, fourchette, reps qu'il doit rester, repos, superset. */
 function TargetSheet(props: {
   exercise: Exercise
   target: Target | undefined
@@ -128,7 +128,7 @@ function TargetSheet(props: {
       </div>
       <div className="field-grid">
         <label className="field">
-          <span className="field-label">RIR</span>
+          <span className="field-label">Reps qu’il doit te rester</span>
           <input className="text-input" placeholder="ex. 1-2" value={rir} onChange={(e) => setRir(e.target.value)} />
         </label>
         <label className="field">

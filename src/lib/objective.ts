@@ -41,13 +41,13 @@ export function dailyObjective(
   if (deload) {
     return {
       rule: 'deload',
-      text: `Semaine allégée : même charge, ${target.sets} série${target.sets > 1 ? 's' : ''}, 3-4 reps en réserve`,
+      text: `Semaine allégée : même charge, ${target.sets} série${target.sets > 1 ? 's' : ''}, arrête chaque série quand tu pourrais encore faire 3 à 4 reps`,
       plan: sets.length ? sets.slice(0, target.sets).map((s) => valuesOf(type, s, target.min)) : [],
     }
   }
 
   if (sets.length === 0) {
-    return { rule: 'first', text: 'Première fois : trouve une charge qui te laisse 2-3 reps en réserve', plan: [] }
+    return { rule: 'first', text: 'Première fois : choisis une charge où tu pourrais encore faire 2 à 3 reps à la fin de la série', plan: [] }
   }
 
   const planned = sets.slice(0, target.sets)

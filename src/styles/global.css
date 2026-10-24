@@ -3025,3 +3025,34 @@ a.btn {
 .muscle-bar {
   min-width: 4px;
 }
+
+/* ============ Séries dégressives ============ */
+.set-chip.drop {
+  margin-left: -2px;
+  border-style: solid;
+  background: var(--surface-2);
+}
+
+.set-chip.drop .set-num {
+  background: transparent;
+  color: var(--accent-text);
+  font-size: 16px;
+}
+
+.btn-drop {
+  min-height: 44px;
+  font-size: 15px;
+  color: var(--accent-text);
+}
+
+.btn-drop svg {
+  width: 18px;
+  height: 18px;
+}
+
+.effort-hint {
+  margin: -4px 0 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.35;
+}

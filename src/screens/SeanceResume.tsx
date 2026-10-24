@@ -24,7 +24,7 @@ import { formatDuration, formatSet, formatSetsLine, formatVolume } from '../lib/
 import { DEFAULT_VALUES, type SetValues } from '../lib/prefill'
 import { findBrokenRecords, formatRecordValue, RECORD_LABELS, type BrokenRecord } from '../lib/records'
 import { sessionStats } from '../lib/sessionStats'
-import { workSets } from '../lib/sets'
+import { canBeDrop, effortSets, setLabel, setTitle } from '../lib/sets'
 
 interface Highlights {
   records: { exerciseId: string; records: BrokenRecord[] }[]
@@ -155,13 +155,13 @@ export function SeanceResume({ mode }: { mode: 'resume' | 'history' }) {
   )
 }
 
-/** « 10 × 60 · 8 × 62,5 kg · + 2 échauffements » (séries de travail d'abord) */
+/** « 10 × 60 · 8 × 62,5 → 5 × 50 kg · + 2 échauffements » (séries de travail et dégressives d'abord) */
 function detailLine(entry: SessionExercise): string {
-  const work = workSets(entry.sets)
-  const warmups = entry.sets.length - work.length
+  const shown = effortSets(entry.sets)
+  const warmups = entry.sets.length - shown.length
   const warmupText = warmups > 0 ? `${warmups} échauffement${warmups > 1 ? 's' : ''}` : ''
-  if (work.length === 0) return warmupText
-  return warmupText ? `${formatSetsLine(entry.type, work)} · + ${warmupText}` : formatSetsLine(entry.type, work)
+  if (shown.length === 0) return warmupText
+  return warmupText ? `${formatSetsLine(entry.type, shown)} · + ${warmupText}` : formatSetsLine(entry.type, shown)
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -187,7 +187,11 @@ function EditSession(props: {
   const step = (e: SessionExercise) => exercisesById.get(e.exerciseId)?.step ?? defaultStep
 
   const initialFor = (e: SessionExercise, setIndex: number | null): SetValues =>
-    setIndex !== null ? withoutTime(e.sets[setIndex]) : e.sets.length ? withoutTime(e.sets.at(-1)!) : DEFAULT_VALUES[e.type]
+    setIndex !== null
+      ? withoutTime(e.sets[setIndex])
+      : e.sets.length
+        ? { ...withoutTime(e.sets.at(-1)!), drop: undefined }
+        : DEFAULT_VALUES[e.type]
 
   return (
     <>
@@ -211,8 +215,11 @@ function EditSession(props: {
             <ol className="set-list">
               {e.sets.map((set, setIndex) => (
                 <li key={set.at + setIndex}>
-                  <button className={set.warmup ? 'set-chip warmup' : 'set-chip'} onClick={() => setSheet({ index, setIndex })}>
-                    <span className="set-num">{set.warmup ? 'É' : workSets(e.sets.slice(0, setIndex + 1)).length}</span>
+                  <button
+                    className={set.warmup ? 'set-chip warmup' : set.drop ? 'set-chip drop' : 'set-chip'}
+                    onClick={() => setSheet({ index, setIndex })}
+                  >
+                    <span className="set-num">{setLabel(e.sets, setIndex)}</span>
                     {formatSet(e.type, set)}
                   </button>
                 </li>
@@ -245,7 +252,8 @@ function EditSession(props: {
         <SetEditSheet
           key={`${sheet.index}-${sheet.setIndex}`}
           type={entry.type}
-          title={sheet.setIndex === null ? 'Ajouter une série' : `Série ${sheet.setIndex + 1}`}
+          title={sheet.setIndex === null ? 'Ajouter une série' : setTitle(entry.sets, sheet.setIndex)}
+          canDrop={sheet.setIndex !== null && canBeDrop(entry.sets, sheet.setIndex)}
           initial={initialFor(entry, sheet.setIndex)}
           step={step(entry)}
           onClose={() => setSheet(null)}

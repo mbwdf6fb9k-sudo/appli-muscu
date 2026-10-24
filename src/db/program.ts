@@ -238,7 +238,10 @@ export const PROGRAM_TIPS: Record<string, ExerciseTips> = {
 
 /** Règles générales du programme (affichées dans Réglages → Exercices et modèles). */
 export const PROGRAM_RULES: { title: string; text: string }[] = [
-  { title: 'RIR', text: 'Nombre de reps gardées en réserve à la fin de la série.' },
+  {
+    title: 'Reps qu’il doit te rester',
+    text: 'À la fin d’une série, le nombre de reps que tu pourrais encore faire. « 1-2 » : arrête la série quand tu pourrais encore en faire 1 ou 2. « 0 » : va au bout.',
+  },
   {
     title: 'Repos',
     text: '2-3 min sur les exercices polyarticulaires, 1-1,5 min sur l’isolation (affichés seulement, pas de minuteur).',
@@ -249,7 +252,7 @@ export const PROGRAM_RULES: { title: string; text: string }[] = [
   },
   {
     title: 'Progression',
-    text: 'Même charge tant que toutes les séries n’ont pas atteint le haut de la fourchette au RIR demandé ; ensuite +1 palier (barre/machine 2,5 kg, haltère suivant, 1 plaque à la poulie) et retour au bas de la fourchette.',
+    text: 'Même charge tant que toutes les séries n’ont pas atteint le haut de la fourchette, en gardant les reps demandées ; ensuite +1 palier (barre/machine 2,5 kg, haltère suivant, 1 plaque à la poulie) et retour au bas de la fourchette.',
   },
 ]
 

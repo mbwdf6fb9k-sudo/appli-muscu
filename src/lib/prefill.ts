@@ -6,6 +6,7 @@ export interface SetValues {
   kg?: number
   seconds?: number
   warmup?: boolean
+  drop?: boolean
 }
 
 export const DEFAULT_VALUES: Record<ExerciseType, SetValues> = {

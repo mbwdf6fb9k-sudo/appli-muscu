@@ -91,6 +91,8 @@ export interface SetEntry {
   at: string
   /** Série d'échauffement : hors objectif du jour, records, volume et stagnation */
   warmup?: boolean
+  /** Suite dégressive de la série d'avant : même série, compte seulement dans le volume */
+  drop?: boolean
 }
 
 export interface SessionExercise {

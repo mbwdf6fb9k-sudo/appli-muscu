@@ -21,15 +21,19 @@ export function formatSet(type: ExerciseType, set: SetEntry): string {
   return `${reps} × ${formatNumber(kg)} kg`
 }
 
-/** Toutes les séries sur une ligne : « 10 × 60 · 10 × 60 · 8 × 62,5 kg » */
+/**
+ * Toutes les séries sur une ligne : « 10 × 60 · 10 × 60 · 8 × 62,5 kg ».
+ * Une suite dégressive est reliée à sa série : « 10 × 20 → 5 × 15 kg ».
+ */
 export function formatSetsLine(type: ExerciseType, sets: SetEntry[]): string {
   if (sets.length === 0) return ''
-  if (type === 'duration') return sets.map((s) => formatSeconds(s.seconds ?? 0)).join(' · ')
+  const join = (parts: string[]) => parts.map((p, i) => (i === 0 ? p : `${sets[i].drop ? ' → ' : ' · '}${p}`)).join('')
+  if (type === 'duration') return join(sets.map((s) => formatSeconds(s.seconds ?? 0)))
   if (type === 'bodyweight') {
-    if (sets.every((s) => !s.kg)) return `${sets.map((s) => s.reps ?? 0).join(' · ')} reps`
-    return sets.map((s) => formatSet(type, s)).join(' · ')
+    if (sets.every((s) => !s.kg)) return `${join(sets.map((s) => String(s.reps ?? 0)))} reps`
+    return join(sets.map((s) => formatSet(type, s)))
   }
-  return `${sets.map((s) => `${s.reps ?? 0} × ${formatNumber(s.kg ?? 0)}`).join(' · ')} kg`
+  return `${join(sets.map((s) => `${s.reps ?? 0} × ${formatNumber(s.kg ?? 0)}`))} kg`
 }
 
 /** Objectif : « 3 × 8-12 », « 2 × 30-60 s » */
@@ -64,4 +68,32 @@ export function formatVolume(kg: number): string {
 export function parseNumber(text: string): number | undefined {
   const value = Number(text.replace(',', '.').trim())
   return text.trim() !== '' && Number.isFinite(value) ? value : undefined
+}
+
+/** « 1-2 » → [1, 2] ; « 2 » → [2, 2] ; null si la valeur n'est pas un nombre ou une fourchette. */
+function reserveRange(rir: string): [number, number] | null {
+  const match = rir.trim().match(/^(\d+)\s*(?:(?:-|–|à)\s*(\d+))?$/)
+  if (!match) return null
+  const low = Number(match[1])
+  return [low, match[2] !== undefined ? Number(match[2]) : low]
+}
+
+/**
+ * Consigne d'effort en clair, à partir des reps qu'il doit rester en fin de série (le « RIR » du programme) :
+ * « 1-2 » → « Arrête la série quand tu pourrais encore faire 1 à 2 reps. »
+ */
+export function effortText(rir: string): string {
+  const range = reserveRange(rir)
+  if (!range) return `Reps qu’il doit te rester en fin de série : ${rir.trim()}.`
+  const [low, high] = range
+  if (high === 0) return 'Va au bout : plus aucune rep possible.'
+  if (low === 0) return `Va presque au bout : au plus ${high} rep${high > 1 ? 's' : ''} encore possible${high > 1 ? 's' : ''}.`
+  return `Arrête la série quand tu pourrais encore faire ${low === high ? low : `${low} à ${high}`} rep${high > 1 ? 's' : ''}.`
+}
+
+/** Version courte pour les listes : « garde 1-2 reps », « jusqu’au bout ». */
+export function effortShort(rir: string): string {
+  const range = reserveRange(rir)
+  if (range && range[1] === 0) return 'jusqu’au bout'
+  return `garde ${rir.trim()} rep${range && range[1] > 1 ? 's' : ''}`
 }
