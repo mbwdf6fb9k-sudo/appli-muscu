@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { AdviceCard } from '../components/AdviceCard'
 import { BackupBanner } from '../components/BackupBanner'
 import { DeloadCard } from '../components/DeloadCard'
 import { MonthlyReviewCard } from '../components/MonthlyReviewCard'
@@ -57,6 +58,10 @@ export function Aujourdhui() {
           {doneToday.map((session) => (
             <DoneSessionCard key={session.id} session={session} />
           ))}
+          {/* Séance conseillée : seulement si rien n'est commencé ni fait aujourd'hui */}
+          {doneToday.length === 0 && (
+            <AdviceCard now={now} choice={choice} onChoose={(value) => setDayChoice(today, value)} />
+          )}
 
           <h2 className="section-title">
             {doneToday.length > 0 ? 'Encore une séance ?' : 'Qu’est-ce que tu fais aujourd’hui ?'}

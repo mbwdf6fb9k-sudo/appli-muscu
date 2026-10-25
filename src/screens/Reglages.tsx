@@ -10,6 +10,17 @@ import { daysSince, formatDaysAgo, formatFullDate } from '../lib/dates'
 import { formatNumber } from '../lib/format'
 import { isStoragePersisted } from '../lib/storage'
 
+/** Jours de la semaine, du lundi au dimanche (getDay : 0 = dimanche). */
+const WEEKDAYS: { day: number; short: string; label: string }[] = [
+  { day: 1, short: 'L', label: 'lundi' },
+  { day: 2, short: 'M', label: 'mardi' },
+  { day: 3, short: 'M', label: 'mercredi' },
+  { day: 4, short: 'J', label: 'jeudi' },
+  { day: 5, short: 'V', label: 'vendredi' },
+  { day: 6, short: 'S', label: 'samedi' },
+  { day: 0, short: 'D', label: 'dimanche' },
+]
+
 const THEMES: { value: Theme; label: string }[] = [
   { value: 'dark', label: 'Sombre' },
   { value: 'light', label: 'Clair' },
@@ -103,6 +114,30 @@ export function Reglages() {
             Pas de {formatNumber(settings?.weightStep ?? 2.5)} kg <ChevronRightIcon />
           </span>
         </Link>
+      </div>
+
+      <h2 className="section-title">Jour(s) de foot habituel(s)</h2>
+      <div className="card stack">
+        <div className="weekday-picker" role="group" aria-label="Jours de foot habituels">
+          {WEEKDAYS.map(({ day, short, label }) => {
+            const on = settings?.footDays.includes(day) ?? false
+            return (
+              <button
+                key={day}
+                aria-pressed={on}
+                aria-label={label}
+                className={on ? 'weekday on' : 'weekday'}
+                onClick={() =>
+                  settings &&
+                  setSetting('footDays', on ? settings.footDays.filter((d) => d !== day) : [...settings.footDays, day].sort())
+                }
+              >
+                {short}
+              </button>
+            )
+          })}
+        </div>
+        <p className="muted small">La séance conseillée évite Jambes la veille de ces jours-là.</p>
       </div>
 
       <h2 className="section-title">Sauvegarde</h2>

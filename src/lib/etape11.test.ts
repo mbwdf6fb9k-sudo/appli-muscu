@@ -455,3 +455,88 @@ describe('tableau de progrès', () => {
     expect(formatTrend(0.01)).toBe('→ +1 %')
   })
 })
+
+describe('séance conseillée', () => {
+  // Jeudi 22 octobre 2026, 9 h
+  const now = new Date(2026, 9, 22, 9)
+  const at = (day: number, templateId: Session['templateId'], hour = 18): Session => {
+    const d = new Date(2026, 9, day, hour)
+    return { id: `${templateId}-${day}`, templateId, date: `2026-10-${day}`, startedAt: d.toISOString(), endedAt: null, status: 'done', exercises: [], exerciseIds: [] }
+  }
+  const advise = async (sessions: Session[], extra: { activities?: { id: string; date: string; type: 'foot' | 'tennis' }[]; footDays?: number[] } = {}) => {
+    const { adviceOfDay } = await import('./advice')
+    return adviceOfDay({ sessions, activities: extra.activities ?? [], footDays: extra.footDays ?? [], now })
+  }
+
+  it('repos après 4 séances dans la semaine ou 3 jours d’affilée', async () => {
+    expect((await advise([at(19, 'dos-biceps'), at(19, 'bras', 20), at(20, 'jambes'), at(20, 'pecs-triceps', 20)])).kind).toBe('rest')
+    expect((await advise([at(19, 'dos-biceps'), at(20, 'jambes'), at(21, 'pecs-triceps')])).kind).toBe('rest')
+    // Lundi, mardi puis rien mercredi : pas 3 jours d'affilée
+    expect((await advise([at(19, 'dos-biceps'), at(20, 'jambes')])).kind).toBe('session')
+  })
+
+  it('la plus ancienne (jamais faite d’abord), ordre en cas d’égalité', async () => {
+    expect(await advise([])).toEqual({ kind: 'session', templateId: 'dos-biceps', reason: 'jamais faite, dos et biceps reposés' })
+    const a = await advise([at(14, 'dos-biceps'), at(15, 'pecs-triceps'), at(16, 'bras'), at(17, 'jambes')])
+    expect(a).toEqual({ kind: 'session', templateId: 'dos-biceps', reason: 'pas faite depuis 8 jours, dos et biceps reposés' })
+  })
+
+  it('séances écartées : Bras après Dos/Pecs (et inversement), même séance < 48 h, Jambes et le foot', async () => {
+    // Pecs hier : Bras écarté → Dos-Biceps (jamais faite) ; puis Dos fait hier soir aussi
+    expect(await advise([at(21, 'pecs-triceps')])).toMatchObject({ templateId: 'dos-biceps' })
+    expect(await advise([at(21, 'pecs-triceps'), at(18, 'dos-biceps'), at(17, 'jambes')])).toMatchObject({ templateId: 'jambes' })
+    // Bras hier : Dos et Pecs écartés
+    expect(await advise([at(21, 'bras'), at(17, 'jambes')])).toMatchObject({ templateId: 'jambes' })
+    // Jambes écartée : foot la veille, ou demain jour de foot (vendredi = 5)
+    const old = [at(12, 'dos-biceps'), at(13, 'pecs-triceps'), at(14, 'bras'), at(10, 'jambes')]
+    expect(await advise(old)).toMatchObject({ templateId: 'jambes' })
+    expect(await advise(old, { activities: [{ id: 'f', date: '2026-10-21', type: 'foot' }] })).toMatchObject({ templateId: 'dos-biceps' })
+    expect(await advise(old, { footDays: [5] })).toMatchObject({ templateId: 'dos-biceps' })
+    // La même séance il y a moins de 48 h (mardi 20 h → jeudi 9 h = 37 h)
+    expect(await advise([at(20, 'dos-biceps', 20), at(12, 'pecs-triceps'), at(13, 'bras'), at(14, 'jambes')])).toMatchObject({ templateId: 'pecs-triceps' })
+  })
+
+  it('aucune séance possible : repos', async () => {
+    const r = await advise([at(21, 'bras'), at(21, 'jambes', 20)], { activities: [{ id: 't', date: '2026-10-22', type: 'tennis' }] })
+    // Bras hier → Dos/Pecs écartés ; Bras < 48 h ; Jambes : tennis aujourd'hui
+    expect(r.kind).toBe('rest')
+  })
+})
+
+describe('bilan du mois : ajouts', () => {
+  it('meilleure série de semaines, statuts, points à travailler (séries prévues par les modèles)', async () => {
+    const { monthlyReview } = await import('./monthlyReview')
+    const { plannedWeeklySets } = await import('./plannedSets')
+    const exercisesById = new Map<string, Exercise>([
+      ['row', { id: 'row', name: 'Rowing', type: 'weight', muscle: 'dos' }],
+      ['bench', { id: 'bench', name: 'Couché', type: 'weight', muscle: 'pecs' }],
+    ])
+    const templates: Template[] = [
+      { id: 'dos-biceps', name: 'Dos-Biceps', exerciseIds: ['row'], targets: { row: { sets: 14, min: 8, max: 12 } } },
+      { id: 'pecs-triceps', name: 'Pecs-Triceps', exerciseIds: ['bench'], targets: { bench: { sets: 3, min: 6, max: 10 } } },
+      { id: 'abdos', name: 'Abdos', exerciseIds: ['bench'], targets: { bench: { sets: 9, min: 1, max: 2 } } },
+    ]
+    expect(plannedWeeklySets(templates, exercisesById)).toEqual(new Map([['dos', 14], ['pecs', 3]]))
+
+    let n = 0
+    const s = (day: number, id: string, sets: SetEntry[]): Session => {
+      const d = new Date(2026, 9, day, 18)
+      return { id: `m${n++}`, templateId: id === 'row' ? 'dos-biceps' : 'pecs-triceps', date: `2026-10-${day}`, startedAt: d.toISOString(), endedAt: null, status: 'done', exercises: [{ exerciseId: id, type: 'weight', sets, note: '', target: { sets: 3, min: 6, max: 10 } }], exerciseIds: [id] }
+    }
+    // 3 séances par semaine les semaines du 5 et du 12 (série de 2), puis 1 la semaine du 19
+    const sessions = [
+      s(5, 'bench', [w(8, 60), w(8, 60), w(8, 60)]), s(6, 'row', [w(10, 50)]), s(7, 'bench', [w(8, 60), w(8, 60), w(7, 60)]),
+      s(12, 'bench', [w(8, 60), w(8, 60), w(8, 60)]), s(13, 'row', [w(10, 50)]), s(14, 'bench', [w(8, 60), w(7, 60), w(7, 60)]),
+      s(19, 'row', [w(10, 50)]),
+    ]
+    const review = monthlyReview('2026-10', {
+      sessions, exercisesById, activities: [], weighIns: [], measurements: [], photos: [], deloadPeriods: [], templates, bodyweight: 75, now: new Date(2026, 10, 5),
+    })
+    expect(review.bestStreak).toBe(2)
+    expect(Object.fromEntries(review.board.rows.map((r) => [r.exerciseId, r.status]))).toEqual({ bench: 'stagnation', row: 'stable' })
+    expect(review.focus[0]).toMatch(/^Couché : pas de progrès depuis 3 séances/)
+    // Dos : 3 séries sur le mois (31 jours ≈ 4,4 semaines) → 0,7 par semaine, 14 prévues
+    expect(review.focus[1]).toBe('Dos : 0,7 série par semaine en moyenne, 14 prévues.')
+    expect(review.focus.length).toBeLessThanOrEqual(3)
+  })
+})

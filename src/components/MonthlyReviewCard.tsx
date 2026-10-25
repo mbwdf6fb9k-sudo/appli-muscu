@@ -5,10 +5,7 @@ import { setSetting, useSettings } from '../db/settings'
 import { monthKey, ofMonth, previousMonth } from '../lib/monthlyReview'
 import { CalendarIcon, CloseIcon } from './icons'
 
-/** Jours du mois pendant lesquels le bilan du mois précédent est proposé. */
-export const REVIEW_CARD_DAYS = 7
-
-/** « Ton bilan d'octobre est prêt » : les 7 premiers jours du mois, tant qu'il n'est ni vu ni fermé. */
+/** « Bilan d'octobre » : à partir du 1er du mois suivant, jusqu'à ce qu'on ferme la carte (pas de carte sans séance). */
 export function MonthlyReviewCard({ now }: { now: Date }) {
   const settings = useSettings()
   const month = previousMonth(monthKey(now))
@@ -22,7 +19,7 @@ export function MonthlyReviewCard({ now }: { now: Date }) {
     [month],
   )
   if (!settings || count === undefined) return null
-  if (now.getDate() > REVIEW_CARD_DAYS || count === 0 || settings.monthlyReviewSeen === month) return null
+  if (count === 0 || settings.monthlyReviewSeen === month) return null
 
   const dismiss = () => setSetting('monthlyReviewSeen', month)
 
@@ -32,10 +29,10 @@ export function MonthlyReviewCard({ now }: { now: Date }) {
         <CalendarIcon />
       </span>
       <span className="deload-text">
-        <span className="deload-title">Ton bilan {ofMonth(month)} est prêt</span>
+        <span className="deload-title">Bilan {ofMonth(month)}</span>
         <span className="muted small">Séances, records, ce qui progresse le plus et l’évolution de ton corps.</span>
         <span className="deload-actions">
-          <Link className="btn btn-primary btn-small" to={`/progres/bilan/${month}`} onClick={dismiss}>
+          <Link className="btn btn-primary btn-small" to={`/progres/bilan/${month}`}>
             Voir
           </Link>
         </span>

@@ -3334,3 +3334,66 @@ a.btn {
 .muscle-stats .stat-value {
   font-size: 18px;
 }
+
+/* ============ Étape 11 : séance conseillée ============ */
+.advice-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+  border-color: color-mix(in srgb, var(--accent-text) 45%, var(--border));
+}
+
+.advice-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.advice-title {
+  font-weight: 650;
+}
+
+.advice-card .btn {
+  flex: none;
+}
+
+.weekday-picker {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.weekday {
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 16px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.weekday.on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+/* ============ Étape 11 : bilan du mois ============ */
+.focus-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 14px 16px 14px 34px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.review-board-summary {
+  margin-bottom: 8px;
+}

@@ -1,8 +1,21 @@
-import type { Activity, Exercise, ExerciseType, Measurement, Photo, Session, SessionTemplateId, SetEntry, WeighIn } from '../db/database'
+import type {
+  Activity,
+  Exercise,
+  ExerciseType,
+  Measurement,
+  Photo,
+  Session,
+  SessionTemplateId,
+  SetEntry,
+  Template,
+  WeighIn,
+} from '../db/database'
 import type { DeloadPeriod } from '../db/settings'
 import { localDateStamp } from './dates'
 import { inDeload } from './deload'
-import { setsByMuscle, type MuscleKey } from './muscleVolume'
+import { MUSCLE_LABELS, setsByMuscle, type MuscleKey } from './muscleVolume'
+import { plannedWeeklySets } from './plannedSets'
+import { boardBetween, type Board } from './progressBoard'
 import { sessionRecords, startOfWeek } from './progress'
 import { computeBests, type RecordKind } from './records'
 import { sessionStats } from './sessionStats'
@@ -65,6 +78,12 @@ export interface MonthlyReview {
   /** Semaines (commencées dans le mois) à 3 séances ou plus, sur le nombre de semaines commencées */
   weeksAtTarget: number
   weeks: number
+  /** Meilleure série de semaines d'affilée à 3 séances ou plus, dans le mois */
+  bestStreak: number
+  /** Statuts des exercices sur le mois (mêmes règles que le tableau de progrès) */
+  board: Board
+  /** Points à travailler (2 ou 3 au plus) : exercices en stagnation, muscles sous 80 % des séries prévues */
+  focus: string[]
   deloadDays: number
   workSets: number
   volume: number
@@ -87,7 +106,18 @@ export interface MonthlyData {
   measurements: Measurement[]
   photos: Photo[]
   deloadPeriods: DeloadPeriod[]
+  /** Modèles : séries prévues par muscle (points à travailler) */
+  templates: Template[]
+  /** Poids du corps pour le score des exercices au poids du corps */
+  bodyweight: number
+  /** Maintenant (mois en cours : moyenne sur les semaines écoulées) */
+  now?: Date
 }
+
+/** Un muscle est « à travailler » sous 80 % des séries prévues par les modèles. */
+export const PLANNED_RATIO = 0.8
+/** Points à travailler affichés au plus. */
+export const MAX_FOCUS = 3
 
 const addDays = (date: Date, days: number) => new Date(date.getFullYear(), date.getMonth(), date.getDate() + days)
 
@@ -108,6 +138,8 @@ export function monthlyReview(month: string, data: MonthlyData): MonthlyReview {
   for (const s of monthSessions) byTemplate.set(s.templateId, (byTemplate.get(s.templateId) ?? 0) + 1)
   let weeks = 0
   let weeksAtTarget = 0
+  let bestRun = 0
+  let run = 0
   for (let monday = startOfWeek(from); monday < to; monday = addDays(monday, 7)) {
     if (monday < from) continue
     weeks++
@@ -115,7 +147,13 @@ export function monthlyReview(month: string, data: MonthlyData): MonthlyReview {
       const start = new Date(s.startedAt)
       return start >= monday && start < addDays(monday, 7)
     }).length
-    if (count >= STREAK_MIN_SESSIONS) weeksAtTarget++
+    if (count >= STREAK_MIN_SESSIONS) {
+      weeksAtTarget++
+      run++
+      bestRun = Math.max(bestRun, run)
+    } else {
+      run = 0
+    }
   }
   let deloadDays = 0
   for (let day = from; day < to; day = addDays(day, 1)) if (inDeload(data.deloadPeriods, localDateStamp(day))) deloadDays++
@@ -181,8 +219,31 @@ export function monthlyReview(month: string, data: MonthlyData): MonthlyReview {
     if (inMonth(m.date)) latestIndex = i
   })
 
+  // Statuts sur le mois et points à travailler
+  const board = boardBetween(data.sessions, data.exercisesById, from, to, data.bodyweight)
+  const name = (id: string) => data.exercisesById.get(id)?.name ?? 'Exercice supprimé'
+  const focus = board.rows
+    .filter((r) => r.status === 'stagnation')
+    .map((r) => `${name(r.exerciseId)} : pas de progrès depuis 3 séances (baisse de 10 % et remonte, ou change d’exercice).`)
+  const now = data.now ?? new Date()
+  const end = to < now ? to : now
+  const elapsedWeeks = Math.max(1, (end.getTime() - from.getTime()) / (7 * 86_400_000))
+  const muscleSets = setsByMuscle(monthSessions, data.exercisesById, from, to)
+  const lagging = [...plannedWeeklySets(data.templates, data.exercisesById)]
+    .filter(([muscle]) => muscle !== 'autre' && muscle !== 'abdos')
+    .map(([muscle, planned]) => ({ muscle, planned, average: Math.round(((muscleSets.get(muscle) ?? 0) / elapsedWeeks) * 10) / 10 }))
+    .filter((m) => monthSessions.length > 0 && m.average < m.planned * PLANNED_RATIO)
+    .sort((a, b) => a.average / a.planned - b.average / b.planned)
+  for (const m of lagging) {
+    const avg = m.average.toLocaleString('fr-FR', { maximumFractionDigits: 1 })
+    focus.push(`${MUSCLE_LABELS[m.muscle]} : ${avg} série${m.average >= 2 ? 's' : ''} par semaine en moyenne, ${m.planned} prévues.`)
+  }
+
   return {
     month,
+    bestStreak: bestRun,
+    board,
+    focus: focus.slice(0, MAX_FOCUS),
     sessions: monthSessions.length,
     previousSessions: done.filter((s) => monthKey(new Date(s.startedAt)) === previous).length,
     byTemplate: [...byTemplate.entries()].map(([templateId, count]) => ({ templateId, count })),

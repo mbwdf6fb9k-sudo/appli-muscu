@@ -1,21 +1,29 @@
-import { useEffect } from 'react'
-import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeftIcon, TrophyIcon } from '../components/icons'
+import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { ChevronLeftIcon, ChevronRightIcon, TrophyIcon } from '../components/icons'
 import { Screen } from '../components/Screen'
 import { useActivities } from '../db/activities'
-import { useExercisesById } from '../db/exercises'
+import { useExercisesById, useTemplates } from '../db/exercises'
 import { useMeasurements } from '../db/measurements'
 import { usePhotos } from '../db/photos'
 import { TEMPLATE_NAMES } from '../db/seed'
 import { useDoneSessions } from '../db/sessions'
-import { setSetting, useSettings } from '../db/settings'
+import { useSettings } from '../db/settings'
 import { useWeighIns } from '../db/weighIns'
 import { formatDuration, formatNumber, formatVolume } from '../lib/format'
 import { MEASURES } from '../lib/measurements'
 import { monthKey, monthLabel, monthlyReview, ofMonth, previousMonth } from '../lib/monthlyReview'
 import { MUSCLE_LABELS, MUSCLE_ORDER } from '../lib/muscleVolume'
+import { currentBodyweight, STATUS_LABELS, type BoardStatus } from '../lib/progressBoard'
 import { formatRecordValue, RECORD_LABELS } from '../lib/records'
 import { useNow } from '../lib/useNow'
+
+const STATUS_WORDS: Record<BoardStatus, string> = {
+  progress: 'en progression',
+  stable: 'stable',
+  stagnation: 'en stagnation',
+  down: 'en baisse',
+  insufficient: 'sans assez de données',
+}
 
 const plural = (n: number, word: string) => `${formatNumber(n)} ${word}${n > 1 ? 's' : ''}`
 const signed = (value: number, unit: string) =>
@@ -37,16 +45,10 @@ export function BilanMois() {
   const measurements = useMeasurements()
   const photos = usePhotos()
   const settings = useSettings()
-
-  // Ouvrir le bilan du mois dernier fait disparaître sa carte sur Aujourd'hui
-  const lastMonth = previousMonth(monthKey(now))
-  const seen = settings?.monthlyReviewSeen
-  useEffect(() => {
-    if (valid && settings && mois === lastMonth && seen !== mois) void setSetting('monthlyReviewSeen', mois)
-  }, [valid, settings, mois, lastMonth, seen])
+  const templates = useTemplates()
 
   if (!valid) return <Navigate to="/progres" replace />
-  if (!sessions || !exercisesById || !activities || !weighIns || !measurements || !photos || !settings) return null
+  if (!sessions || !exercisesById || !activities || !weighIns || !measurements || !photos || !settings || !templates) return null
 
   const review = monthlyReview(mois, {
     sessions,
@@ -56,6 +58,8 @@ export function BilanMois() {
     measurements,
     photos,
     deloadPeriods: settings.deloadPeriods,
+    templates,
+    bodyweight: currentBodyweight(weighIns, settings.startWeight),
   })
   const current = mois === monthKey(now)
   const name = (id: string) => exercisesById.get(id)?.name ?? 'Exercice supprimé'
@@ -103,6 +107,17 @@ export function BilanMois() {
         <p className="muted hint">Pas de séance ce mois-ci.</p>
       ) : (
         <>
+          {review.focus.length > 0 && (
+            <>
+              <h2 className="section-title">Points à travailler</h2>
+              <ul className="card focus-list">
+                {review.focus.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
+              </ul>
+            </>
+          )}
+
           <h2 className="section-title">Régularité</h2>
           <div className="card list-card">
             {review.byTemplate.map((t) => (
@@ -117,6 +132,12 @@ export function BilanMois() {
               <span>Semaines à 3 séances ou plus</span>
               <span className="muted">
                 {review.weeksAtTarget} / {review.weeks}
+              </span>
+            </div>
+            <div className="list-row review-row">
+              <span>Meilleure série</span>
+              <span className="muted">
+                {review.bestStreak} semaine{review.bestStreak > 1 ? 's' : ''} d’affilée
               </span>
             </div>
             <div className="list-row review-row">
@@ -138,6 +159,32 @@ export function BilanMois() {
               </div>
             )}
           </div>
+
+          <h2 className="section-title">Exercices sur le mois</h2>
+          <p className="board-summary review-board-summary">
+            {(['progress', 'stable', 'stagnation', 'down'] as BoardStatus[])
+              .filter((st) => review.board.counts[st] > 0)
+              .map((st) => `${review.board.counts[st]} ${STATUS_WORDS[st]}${st === 'stable' && review.board.counts[st] > 1 ? 's' : ''}`)
+              .join(' · ') || 'Pas assez de séances par exercice pour un statut.'}
+          </p>
+          {review.board.rows.some((r) => r.status !== 'insufficient') && (
+            <div className="card list-card">
+              {review.board.rows
+                .filter((r) => r.status !== 'insufficient')
+                .map((r) => (
+                  <Link key={r.exerciseId} to={`/progres/exercice/${r.exerciseId}`} className="list-row board-row">
+                    <span className="history-text">
+                      <span className="history-name">{name(r.exerciseId)}</span>
+                      <span className="muted small">{r.best}</span>
+                    </span>
+                    <span className="list-row-end">
+                      <span className={`status status-${r.status}`}>{STATUS_LABELS[r.status]}</span>
+                      <ChevronRightIcon />
+                    </span>
+                  </Link>
+                ))}
+            </div>
+          )}
 
           <h2 className="section-title">Records battus ({review.records.length})</h2>
           {review.records.length === 0 ? (

@@ -227,6 +227,8 @@ describe('bilan du mois', () => {
     measurements: [],
     photos: [],
     deloadPeriods: [],
+    templates: [],
+    bodyweight: 75,
   }
 
   it('régularité, travail, records et progression', () => {

@@ -87,7 +87,20 @@ export function progressBoard(
   now: Date,
   bodyweight: number,
 ): Board {
-  const from = now.getTime() - PERIOD_DAYS[period] * 86_400_000
+  const from = period === 'all' ? new Date(0) : new Date(now.getTime() - PERIOD_DAYS[period] * 86_400_000)
+  return boardBetween(sessions, exercisesById, from, now, bodyweight)
+}
+
+/** Même tableau entre deux dates (bilan du mois) : seules les séances d'avant `to` sont prises en compte. */
+export function boardBetween(
+  allSessions: Session[],
+  exercisesById: Map<string, Exercise>,
+  fromDate: Date,
+  to: Date,
+  bodyweight: number,
+): Board {
+  const sessions = allSessions.filter((s) => new Date(s.startedAt) < to)
+  const from = fromDate.getTime()
   const records = sessionRecords(sessions)
   const ids = new Set(sessions.flatMap((s) => (s.status === 'done' ? s.exerciseIds : [])))
   const rows: BoardRow[] = []
