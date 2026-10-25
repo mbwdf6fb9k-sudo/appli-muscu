@@ -189,3 +189,80 @@ describe('séries retenues : les N premières séries de travail', () => {
     expect(exerciseStagnates(sessions, 'x')).toBe(true)
   })
 })
+
+describe('exercices : création, groupe, fusion', () => {
+  it('un exercice créé a toujours un groupe ; changer de groupe recalcule les séries par muscle', async () => {
+    const { db } = await import('../db/database')
+    const { createExercise, updateExercise, unclassified } = await import('../db/exercises')
+    const { muscleVolume } = await import('./muscleVolume')
+    await db.delete()
+    await db.open()
+    const created = await createExercise('Pec deck', 'weight', 'pecs')
+    expect((await db.exercises.get(created.id))?.muscle).toBe('pecs')
+    expect(unclassified(await db.exercises.toArray())).toEqual([])
+
+    const now = new Date(2026, 9, 22, 20)
+    const session: Session = {
+      id: 'v',
+      templateId: 'pecs-triceps',
+      date: '2026-10-21',
+      startedAt: new Date(2026, 9, 21, 18).toISOString(),
+      endedAt: null,
+      status: 'done',
+      exercises: [{ exerciseId: created.id, type: 'weight', sets: [w(10, 40), w(10, 40)], note: '' }],
+      exerciseIds: [created.id],
+    }
+    const byId = async () => new Map((await db.exercises.toArray()).map((e) => [e.id, e]))
+    const pecs = (v: ReturnType<typeof muscleVolume>) => v.rows.find((r) => r.muscle === 'pecs')!.week
+    expect(pecs(muscleVolume([session], await byId(), now))).toBe(2)
+    await updateExercise(created.id, { name: 'Pec deck', type: 'weight', muscle: 'epaules' })
+    const after = muscleVolume([session], await byId(), now)
+    expect(pecs(after)).toBe(0)
+    expect(after.rows.find((r) => r.muscle === 'epaules')!.week).toBe(2)
+  })
+
+  it('fusionner : historique regroupé, modèles mis à jour, l’autre supprimé', async () => {
+    const { db } = await import('../db/database')
+    const { mergeExercises } = await import('../db/exercises')
+    await db.delete()
+    await db.open()
+    await db.exercises.bulkPut([
+      { id: 'a', name: 'Pec deck', type: 'weight', muscle: 'pecs' },
+      { id: 'b', name: 'Butterfly', type: 'weight', muscle: 'pecs' },
+    ])
+    const base = { templateId: 'pecs-triceps' as const, endedAt: null, status: 'done' as const }
+    await db.sessions.bulkPut([
+      { ...base, id: 's1', date: '2026-10-20', startedAt: '2026-10-20T16:00:00.000Z', exerciseIds: ['a'], exercises: [{ exerciseId: 'a', type: 'weight', sets: [w(10, 30, { at: '1' })], note: 'siège 3' }] },
+      {
+        ...base,
+        id: 's2',
+        date: '2026-10-22',
+        startedAt: '2026-10-22T16:00:00.000Z',
+        exerciseIds: ['b', 'a'],
+        exercises: [
+          { exerciseId: 'b', type: 'weight', sets: [w(12, 30, { at: '2' })], note: '' },
+          { exerciseId: 'a', type: 'weight', sets: [w(8, 35, { at: '1' })], note: 'lent' },
+        ],
+      },
+    ])
+    const pecs = (await db.templates.get('pecs-triceps'))!
+    await db.templates.put({ ...pecs, exerciseIds: ['a', ...pecs.exerciseIds], targets: { ...pecs.targets, a: { sets: 3, min: 10, max: 15 } } })
+    await db.templates.put({ id: 'bras', name: 'Bras', exerciseIds: ['b', 'a'] })
+
+    await mergeExercises('a', 'b')
+    expect(await db.exercises.get('a')).toBeUndefined()
+    const s1 = (await db.sessions.get('s1'))!
+    expect(s1.exercises[0].exerciseId).toBe('b')
+    expect(s1.exerciseIds).toEqual(['b'])
+    const s2 = (await db.sessions.get('s2'))!
+    expect(s2.exercises).toHaveLength(1)
+    expect(s2.exercises[0].sets.map((s) => s.kg)).toEqual([35, 30])
+    expect(s2.exercises[0].note).toBe('lent')
+    const tpl = (await db.templates.get('pecs-triceps'))!
+    expect(tpl.exerciseIds[0]).toBe('b')
+    expect(tpl.targets?.b).toEqual({ sets: 3, min: 10, max: 15 })
+    expect(tpl.targets?.a).toBeUndefined()
+    expect((await db.templates.get('bras'))?.exerciseIds).toEqual(['b'])
+    expect(await db.sessions.where('exerciseIds').equals('b').count()).toBe(2)
+  })
+})

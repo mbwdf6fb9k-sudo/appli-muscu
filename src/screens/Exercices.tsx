@@ -6,12 +6,13 @@ import { Screen } from '../components/Screen'
 import { Sheet } from '../components/Sheet'
 import { Stepper } from '../components/Stepper'
 import type { Exercise, ExerciseType, MuscleGroup, TemplateId } from '../db/database'
-import { createExercise, deleteExercise, updateExercise, useExercises, useTemplates } from '../db/exercises'
+import { createExercise, deleteExercise, mergeExercises, unclassified, updateExercise, useExercises, useTemplates } from '../db/exercises'
+import { MuscleSelect } from '../components/MuscleSelect'
 import { PROGRAM_RULES } from '../db/program'
 import { TEMPLATE_NAMES } from '../db/seed'
 import { setSetting, useSettings } from '../db/settings'
 import { formatNumber, parseNumber } from '../lib/format'
-import { MUSCLE_LABELS, MUSCLE_ORDER } from '../lib/muscleVolume'
+import { MUSCLE_LABELS } from '../lib/muscleVolume'
 
 const TEMPLATE_ORDER: TemplateId[] = ['dos-biceps', 'pecs-triceps', 'jambes', 'bras', 'abdos']
 
@@ -71,6 +72,20 @@ export function Exercices() {
         })}
       </div>
 
+      {unclassified(visible).length > 0 && (
+        <>
+          <h2 className="section-title">À classer ({unclassified(visible).length})</h2>
+          <div className="card list-card exercise-index to-classify">
+            {unclassified(visible).map((exercise) => (
+              <button key={exercise.id} className="list-row" onClick={() => setEditing(exercise)}>
+                <span>{exercise.name}</span>
+                <span className="muted small">sans muscle</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
       <h2 className="section-title">Tous les exercices ({visible.length})</h2>
       <button className="btn btn-secondary" onClick={() => setEditing(null)}>
         <PlusIcon /> Nouvel exercice
@@ -79,20 +94,28 @@ export function Exercices() {
         {visible.map((exercise) => (
           <button key={exercise.id} className="list-row" onClick={() => setEditing(exercise)}>
             <span>{exercise.name}</span>
-            <span className="muted small">{TYPE_LABELS[exercise.type]}</span>
+            <span className="muted small">
+              {exercise.muscle ? MUSCLE_LABELS[exercise.muscle] : 'sans muscle'} · {TYPE_LABELS[exercise.type]}
+            </span>
           </button>
         ))}
       </div>
 
       {editing !== undefined && (
-        <ExerciseEditSheet exercise={editing} defaultStep={settings.weightStep} onClose={() => setEditing(undefined)} />
+        <ExerciseEditSheet
+          exercise={editing}
+          others={visible.filter((e) => e.id !== editing?.id)}
+          defaultStep={settings.weightStep}
+          onClose={() => setEditing(undefined)}
+        />
       )}
     </Screen>
   )
 }
 
-function ExerciseEditSheet(props: { exercise: Exercise | null; defaultStep: number; onClose: () => void }) {
+function ExerciseEditSheet(props: { exercise: Exercise | null; others: Exercise[]; defaultStep: number; onClose: () => void }) {
   const { exercise, defaultStep, onClose } = props
+  const [merging, setMerging] = useState(false)
   const [name, setName] = useState(exercise?.name ?? '')
   const [type, setType] = useState<ExerciseType>(exercise?.type ?? 'weight')
   const [step, setStep] = useState(exercise?.step ? formatNumber(exercise.step) : '')
@@ -103,7 +126,7 @@ function ExerciseEditSheet(props: { exercise: Exercise | null; defaultStep: numb
   const [muscle, setMuscle] = useState<MuscleGroup | ''>(exercise?.muscle ?? '')
 
   async function save() {
-    if (!name.trim()) return
+    if (!name.trim() || !muscle) return
     const parsedStep = parseNumber(step)
     const changes = {
       name,
@@ -111,11 +134,11 @@ function ExerciseEditSheet(props: { exercise: Exercise | null; defaultStep: numb
       step: parsedStep && parsedStep > 0 ? parsedStep : undefined,
       tips: { technique, errors, replacement },
       compound,
-      muscle: muscle || null,
+      muscle,
     }
     if (exercise) await updateExercise(exercise.id, changes)
     else {
-      const created = await createExercise(name, type)
+      const created = await createExercise(name, type, muscle)
       await updateExercise(created.id, changes)
     }
     onClose()
@@ -145,16 +168,11 @@ function ExerciseEditSheet(props: { exercise: Exercise | null; defaultStep: numb
         </div>
       </div>
       <label className="field">
-        <span className="field-label">Muscle principal</span>
-        <select className="text-input" value={muscle} onChange={(e) => setMuscle(e.target.value as MuscleGroup | '')}>
-          <option value="">Autre / non précisé</option>
-          {MUSCLE_ORDER.map((m) => (
-            <option key={m} value={m}>
-              {MUSCLE_LABELS[m]}
-            </option>
-          ))}
-        </select>
-        <span className="muted small">Sert au compte des séries par muscle (Progrès).</span>
+        <span className="field-label">Groupe musculaire</span>
+        <MuscleSelect value={muscle} onChange={setMuscle} />
+        <span className="muted small">
+          {muscle ? 'Sert au compte des séries par muscle (Progrès) ; changer de groupe recalcule tout.' : 'Obligatoire.'}
+        </span>
       </label>
       {type !== 'duration' && (
         <label className="field">
@@ -190,14 +208,62 @@ function ExerciseEditSheet(props: { exercise: Exercise | null; defaultStep: numb
         <input className="text-input" value={replacement} onChange={(e) => setReplacement(e.target.value)} />
       </label>
       <div className="sheet-actions">
-        <button className="btn btn-primary" onClick={save} disabled={!name.trim()}>
+        <button className="btn btn-primary" onClick={save} disabled={!name.trim() || !muscle}>
           Enregistrer
         </button>
+        {exercise && (
+          <button className="btn btn-secondary" onClick={() => setMerging(true)}>
+            Fusionner avec…
+          </button>
+        )}
         {exercise && (
           <button className="btn btn-ghost btn-danger" onClick={remove}>
             Supprimer l’exercice
           </button>
         )}
+      </div>
+      {merging && exercise && (
+        <MergeSheet
+          exercise={exercise}
+          others={props.others.filter((e) => e.type === exercise.type)}
+          onClose={() => setMerging(false)}
+          onMerged={onClose}
+        />
+      )}
+    </Sheet>
+  )
+}
+
+/** Choisir l'exercice à garder : tout l'historique de `exercise` passe sur lui, puis `exercise` est supprimé. */
+function MergeSheet(props: { exercise: Exercise; others: Exercise[]; onClose: () => void; onMerged: () => void }) {
+  const { exercise, others } = props
+  return (
+    <Sheet open onClose={props.onClose} title={`Fusionner « ${exercise.name} »`}>
+      <p className="muted small merge-intro">
+        Choisis l’exercice à garder : tout l’historique de « {exercise.name} » sera regroupé dessus, il le remplacera
+        dans les modèles, et « {exercise.name} » disparaîtra de la liste. Seuls les exercices du même type sont
+        proposés.
+      </p>
+      <div className="card list-card">
+        {others.map((other) => (
+          <button
+            key={other.id}
+            className="list-row"
+            onClick={async () => {
+              const ok = confirm(
+                `Fusionner « ${exercise.name} » dans « ${other.name} » ?\n\nTout l’historique passera sur « ${other.name} » et « ${exercise.name} » sera supprimé.`,
+              )
+              if (!ok) return
+              await mergeExercises(exercise.id, other.id)
+              props.onClose()
+              props.onMerged()
+            }}
+          >
+            <span>{other.name}</span>
+            <span className="muted small">{other.muscle ? MUSCLE_LABELS[other.muscle] : 'sans muscle'}</span>
+          </button>
+        ))}
+        {others.length === 0 && <p className="muted small hint">Aucun autre exercice de ce type.</p>}
       </div>
     </Sheet>
   )

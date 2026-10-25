@@ -3056,3 +3056,34 @@ a.btn {
   font-size: 14px;
   line-height: 1.35;
 }
+
+/* ============ Étape 11 : exercices à classer, fusion ============ */
+.classify-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  margin-bottom: 12px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.classify-banner svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+
+.to-classify .list-row .muted {
+  color: var(--accent-text);
+}
+
+.merge-intro {
+  margin-bottom: 12px;
+}
+
+.create-muscle {
+  margin-bottom: 0;
+}

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import type { ExerciseType } from '../db/database'
+import type { ExerciseType, MuscleGroup } from '../db/database'
 import { createExercise, useExercises } from '../db/exercises'
 import { PlusIcon } from './icons'
+import { MuscleSelect } from './MuscleSelect'
 import { Sheet } from './Sheet'
 
 export const TYPE_LABELS: Record<ExerciseType, string> = {
@@ -30,6 +31,7 @@ export function ExercisePicker({ open, onClose, excludeIds, onPick }: ExercisePi
   const exercises = useExercises()
   const [search, setSearch] = useState('')
   const [newType, setNewType] = useState<ExerciseType>('weight')
+  const [newMuscle, setNewMuscle] = useState<MuscleGroup | ''>('')
 
   const query = normalize(search)
   const results = useMemo(
@@ -43,6 +45,7 @@ export function ExercisePicker({ open, onClose, excludeIds, onPick }: ExercisePi
 
   const close = () => {
     setSearch('')
+    setNewMuscle('')
     onClose()
   }
   const pick = (id: string) => {
@@ -50,7 +53,8 @@ export function ExercisePicker({ open, onClose, excludeIds, onPick }: ExercisePi
     close()
   }
   const create = async () => {
-    const exercise = await createExercise(search, newType)
+    if (!newMuscle) return
+    const exercise = await createExercise(search, newType, newMuscle)
     pick(exercise.id)
   }
 
@@ -75,7 +79,11 @@ export function ExercisePicker({ open, onClose, excludeIds, onPick }: ExercisePi
               </button>
             ))}
           </div>
-          <button className="btn btn-primary" onClick={create}>
+          <label className="field create-muscle">
+            <span className="field-label">Groupe musculaire</span>
+            <MuscleSelect value={newMuscle} onChange={setNewMuscle} />
+          </label>
+          <button className="btn btn-primary" onClick={create} disabled={!newMuscle}>
             <PlusIcon /> Créer et ajouter
           </button>
         </div>

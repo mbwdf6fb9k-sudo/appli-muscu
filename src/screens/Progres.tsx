@@ -7,7 +7,7 @@ import { ComingSoon } from '../components/ComingSoon'
 import { ChevronRightIcon, ProgressIcon, TrophyIcon } from '../components/icons'
 import { Screen, SettingsLink } from '../components/Screen'
 import type { Exercise, Session } from '../db/database'
-import { useExercisesById } from '../db/exercises'
+import { unclassified, useExercisesById } from '../db/exercises'
 import { TEMPLATE_NAMES } from '../db/seed'
 import { useDoneSessions } from '../db/sessions'
 import { useSettings, type DeloadPeriod } from '../db/settings'
@@ -51,8 +51,19 @@ export function Progres() {
 
   if (!sessions || !exercisesById || !settings) return null
 
-  // Tout en haut : compteurs, série de semaines et calendrier de régularité
-  const regularity = <Regularity sessions={sessions} deloadPeriods={settings.deloadPeriods} now={now} />
+  // Tout en haut : exercices à classer, compteurs, série de semaines et calendrier de régularité
+  const toClassify = unclassified([...exercisesById.values()]).length
+  const regularity = (
+    <>
+      {toClassify > 0 && (
+        <Link to="/reglages/exercices" className="hint-chip classify-banner">
+          {toClassify} exercice{toClassify > 1 ? 's' : ''} sans muscle : à classer
+          <ChevronRightIcon />
+        </Link>
+      )}
+      <Regularity sessions={sessions} deloadPeriods={settings.deloadPeriods} now={now} />
+    </>
+  )
 
   if (sessions.length === 0) {
     return (
