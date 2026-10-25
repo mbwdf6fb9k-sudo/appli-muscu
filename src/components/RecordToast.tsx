@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { formatRecordValue, RECORD_LABELS, type BrokenRecord } from '../lib/records'
+import { formatRecord, RECORD_LABELS, type BrokenRecord } from '../lib/records'
 import { TrophyIcon } from './icons'
 
 export interface RecordCelebration {
@@ -31,8 +31,7 @@ export function RecordToast({ celebration, onClose }: { celebration: RecordCeleb
         <span className="record-toast-title">Nouveau record · {celebration.exerciseName}</span>
         {celebration.records.map((r) => (
           <span key={r.kind} className="record-toast-line">
-            {RECORD_LABELS[r.kind]} : <strong>{formatRecordValue(r.kind, r.value)}</strong> (avant{' '}
-            {formatRecordValue(r.kind, r.previous)})
+            {RECORD_LABELS[r.kind]} : <strong>{formatRecord(r).value}</strong> (avant {formatRecord(r).previous})
           </span>
         ))}
       </span>

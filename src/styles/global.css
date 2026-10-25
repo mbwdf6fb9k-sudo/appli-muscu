@@ -3087,3 +3087,69 @@ a.btn {
 .create-muscle {
   margin-bottom: 0;
 }
+
+/* ============ Étape 11 : records au calendrier ============ */
+.calendar-day {
+  position: relative;
+}
+
+.calendar-star {
+  position: absolute;
+  top: 1px;
+  right: calc(50% - 22px);
+  color: var(--accent-text);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.legend-star {
+  position: static;
+  font-size: 12px;
+}
+
+.day-records {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.day-records-title {
+  color: var(--accent-text);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+/* ============ Étape 11 : objectif expliqué, dernière note ============ */
+.objective-reason {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.last-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.last-note-text {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.last-note-copy {
+  flex: none;
+  color: var(--accent-text);
+}

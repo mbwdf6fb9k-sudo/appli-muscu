@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
 import type { Exercise, ExerciseTips, Session, SessionExercise } from '../db/database'
-import { addSet, deleteSet, previousSets, setNote, updateSet, useLastPerformance } from '../db/sessions'
+import { addSet, bestPreviousVolume, deleteSet, lastNote, previousSets, setNote, updateSet, useLastPerformance } from '../db/sessions'
 import { effortText, formatSet, formatSetsLine, formatShortDate, formatTarget } from '../lib/format'
 import { haptic } from '../lib/haptics'
 import { dailyObjective, warmupSets } from '../lib/objective'
@@ -25,8 +25,8 @@ interface ExerciseCardProps {
   superset?: SupersetInfo
   /** Échauffement proposé : 1er exercice, ou 2e s'il est polyarticulaire */
   warmupPosition?: 'first' | 'second'
-  /** N'a pas progressé sur 3 séances d'affilée */
-  stagnating?: boolean
+  /** N'a pas progressé sur 3 séances d'affilée : l'explication (« Pas de progrès depuis 3 séances (…) ») */
+  stagnation?: string
 }
 
 export interface SupersetInfo {
@@ -50,7 +50,7 @@ export function ExerciseCard(props: ExerciseCardProps) {
           <span className="exercise-name">{name}</span>
           {summary && !open && <span className="exercise-sub">{summary}</span>}
         </span>
-        {props.stagnating && <span className="stagnation-badge">stagnation</span>}
+        {props.stagnation && <span className="stagnation-badge">stagnation</span>}
         {work.length > 0 && <span className="set-count">{work.length}</span>}
         <span className="exercise-chevron">
           <ChevronDownIcon />
@@ -66,7 +66,7 @@ export function ExerciseCard(props: ExerciseCardProps) {
           tips={exercise?.tips}
           superset={superset}
           warmupPosition={props.warmupPosition}
-          stagnating={props.stagnating}
+          stagnation={props.stagnation}
         />
       )}
     </section>
@@ -82,11 +82,11 @@ interface ExerciseBodyProps {
   tips?: ExerciseTips
   superset?: SupersetInfo
   warmupPosition?: 'first' | 'second'
-  stagnating?: boolean
+  stagnation?: string
 }
 
 function ExerciseBody(props: ExerciseBodyProps) {
-  const { session, index, entry, step, onRecord, tips, superset, warmupPosition, stagnating } = props
+  const { session, index, entry, step, onRecord, tips, superset, warmupPosition, stagnation } = props
   // « La dernière fois » : dernière séance, allégée ou non. Objectif du jour : dernière séance NON allégée.
   const last = useLastPerformance(entry.exerciseId, session.startedAt)
   const lastNormal = useLastPerformance(entry.exerciseId, session.startedAt, true)
@@ -94,8 +94,12 @@ function ExerciseBody(props: ExerciseBodyProps) {
     () => previousSets(entry.exerciseId, session.startedAt, entry.type),
     [entry.exerciseId, session.startedAt, entry.type],
   )
-  // Séries record (recalculées si une série est corrigée ou supprimée ; jamais un échauffement)
-  const records = liveRecords(entry.type, history ?? [], entry.sets)
+  const bestVolume = useLiveQuery(
+    () => bestPreviousVolume(entry.exerciseId, session.startedAt, entry.type),
+    [entry.exerciseId, session.startedAt, entry.type],
+  )
+  // Séries record (recalculées si une série est corrigée ou supprimée ; jamais un échauffement ni une dégressive)
+  const records = liveRecords(entry.type, history ?? [], entry.sets, bestVolume ?? 0)
 
   // Célébration : seulement pour la série qu'on vient de valider, pas au chargement ni à la correction
   const celebrateAt = useRef<number | null>(null)
@@ -114,6 +118,9 @@ function ExerciseBody(props: ExerciseBodyProps) {
     void addSet(session.id, index, values)
   }
   const [editing, setEditing] = useState<number | null>(null)
+  // Dernière note non vide de l'exercice (toutes séances confondues) ; « Reprendre » la copie dans celle du jour
+  const previousNote = useLiveQuery(() => lastNote(entry.exerciseId, session.startedAt), [entry.exerciseId, session.startedAt])
+  const [copiedNote, setCopiedNote] = useState<string | null>(null)
 
   const target = entry.target
   const lastSets = last && last.type === entry.type ? last.sets : []
@@ -139,6 +146,24 @@ function ExerciseBody(props: ExerciseBodyProps) {
 
   return (
     <div className="exercise-body">
+      {previousNote && (
+        <p className="last-note">
+          <span className="last-note-text">
+            Dernière note ({formatShortDate(new Date(previousNote.date))}) : {previousNote.note}
+          </span>
+          {(copiedNote ?? entry.note).trim() !== previousNote.note && (
+            <button
+              className="btn btn-ghost btn-small last-note-copy"
+              onClick={async () => {
+                await setNote(session.id, index, previousNote.note)
+                setCopiedNote(previousNote.note)
+              }}
+            >
+              Reprendre
+            </button>
+          )}
+        </p>
+      )}
       {target && (
         <div className="target-row">
           <span className="target-text">
@@ -157,9 +182,9 @@ function ExerciseBody(props: ExerciseBodyProps) {
           {superset.next ? `enchaîne avec ${superset.next}, sans pause.` : 'repos après la paire.'}
         </p>
       )}
-      {stagnating && (
+      {stagnation && (
         <p className="hint-chip hint-stagnation">
-          Pas de progrès sur 3 séances : baisse de 10 % et remonte
+          {stagnation} : baisse de 10 % et remonte
           {tips?.replacement ? `, ou passe à l’exercice de remplacement : ${tips.replacement.replace(/\.$/, '')}.` : '.'}
         </p>
       )}
@@ -181,6 +206,7 @@ function ExerciseBody(props: ExerciseBodyProps) {
           <span className={`objective objective-${objective.rule}`}>
             <span className="objective-label">Objectif du jour</span>
             <strong>{objective.text}</strong>
+            <span className="objective-reason">{objective.reason}</span>
           </span>
         )}
       </div>
@@ -260,7 +286,8 @@ function ExerciseBody(props: ExerciseBodyProps) {
         </button>
       )}
 
-      <NoteField sessionId={session.id} index={index} initial={entry.note} />
+      {/* Après « Reprendre », le champ repart de la note copiée */}
+      <NoteField key={copiedNote ?? ''} sessionId={session.id} index={index} initial={copiedNote ?? entry.note} />
 
       {editing !== null && entry.sets[editing] && (
         <SetEditSheet

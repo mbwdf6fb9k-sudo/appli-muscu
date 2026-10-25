@@ -1,5 +1,13 @@
 import type { ExerciseType, Session, SetEntry } from '../db/database'
-import { computeBests, findBrokenRecords, RECORD_KINDS, type Bests, type RecordKind } from './records'
+import {
+  computeBests,
+  findBrokenRecords,
+  RECORD_KINDS,
+  sessionVolume,
+  type Bests,
+  type BrokenRecord,
+  type RecordKind,
+} from './records'
 import { effortSets, retainedSets, workSets } from './sets'
 
 /** Lundi 0 h de la semaine de la date (heure locale). */
@@ -63,6 +71,9 @@ export interface HistoryEntry {
 
 const byDate = (a: Session, b: Session) => a.startedAt.localeCompare(b.startedAt)
 
+/** Le volume de la séance s'ajoute aux meilleures valeurs (record « Volume (séance) »). */
+const withVolume = (bests: Bests, volume: number): Bests => (volume > 0 ? { ...bests, maxVolume: volume } : bests)
+
 /** Chaque séance terminée où l'exercice a été fait, de la plus ancienne à la plus récente. */
 export function exerciseHistory(sessions: Session[], exerciseId: string): HistoryEntry[] {
   const entries: HistoryEntry[] = []
@@ -77,7 +88,7 @@ export function exerciseHistory(sessions: Session[], exerciseId: string): Histor
       shown: effortSets(exercise.sets),
       retained: retainedSets(exercise),
       sets,
-      bests: computeBests(exercise.type, sets),
+      bests: withVolume(computeBests(exercise.type, sets), sessionVolume(exercise.type, sets)),
       deload: !!session.deload,
     })
   }
@@ -96,7 +107,8 @@ export interface DatedRecord {
 export function exerciseRecords(history: HistoryEntry[], type: ExerciseType): DatedRecord[] {
   const entries = history.filter((h) => h.type === type)
   const records: DatedRecord[] = []
-  for (const kind of RECORD_KINDS[type]) {
+  const kinds: RecordKind[] = type === 'duration' ? RECORD_KINDS[type] : [...RECORD_KINDS[type], 'maxVolume']
+  for (const kind of kinds) {
     let best: DatedRecord | undefined
     for (const entry of entries) {
       const value = entry.bests[kind]
@@ -145,18 +157,34 @@ export function exerciseSummaries(sessions: Session[]): ExerciseSummary[] {
     .sort((a, b) => b.lastDate.localeCompare(a.lastDate))
 }
 
-/** Identifiants des séances où au moins un record a été battu. */
-export function recordSessionIds(sessions: Session[]): Set<string> {
-  const ids = new Set<string>()
+export interface SessionRecord {
+  exerciseId: string
+  records: BrokenRecord[]
+}
+
+/**
+ * Records battus séance par séance (séries de travail : sans échauffements ni dégressives),
+ * chacune comparée à tout ce qui précède. Aucun record la première fois qu'on fait un exercice.
+ */
+export function sessionRecords(sessions: Session[]): Map<string, SessionRecord[]> {
+  const result = new Map<string, SessionRecord[]>()
   const past = new Map<string, SetEntry[]>()
+  const bestVolume = new Map<string, number>()
   for (const session of sessions.filter((s) => s.status === 'done').sort(byDate)) {
     for (const exercise of session.exercises) {
       const key = `${exercise.exerciseId}|${exercise.type}`
       const previous = past.get(key) ?? []
       const sets = workSets(exercise.sets)
-      if (findBrokenRecords(exercise.type, previous, sets).length > 0) ids.add(session.id)
+      const records = findBrokenRecords(exercise.type, previous, sets, bestVolume.get(key) ?? 0)
+      if (records.length > 0) result.set(session.id, [...(result.get(session.id) ?? []), { exerciseId: exercise.exerciseId, records }])
       past.set(key, [...previous, ...sets])
+      bestVolume.set(key, Math.max(bestVolume.get(key) ?? 0, sessionVolume(exercise.type, sets)))
     }
   }
-  return ids
+  return result
+}
+
+/** Identifiants des séances où au moins un record a été battu. */
+export function recordSessionIds(sessions: Session[]): Set<string> {
+  return new Set(sessionRecords(sessions).keys())
 }

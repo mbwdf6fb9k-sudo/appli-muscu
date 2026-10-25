@@ -8,7 +8,8 @@ import { localDateStamp } from '../lib/dates'
 import { inDeload } from '../lib/deload'
 import { monthKey, ofMonth } from '../lib/monthlyReview'
 import { formatDuration } from '../lib/format'
-import { startOfWeek } from '../lib/progress'
+import { startOfWeek, type SessionRecord } from '../lib/progress'
+import { formatRecord, RECORD_LABELS } from '../lib/records'
 import { sessionStats } from '../lib/sessionStats'
 import { ChevronLeftIcon, ChevronRightIcon } from './icons'
 import { Sheet } from './Sheet'
@@ -33,10 +34,13 @@ interface Props {
   sessions: Session[]
   deloadPeriods: DeloadPeriod[]
   now: Date
+  /** Records battus, par séance (★ sur le jour) */
+  records: Map<string, SessionRecord[]>
+  exerciseName: (id: string) => string
 }
 
 /** Calendrier du mois : pastille par séance, foot/tennis, semaines allégées ; toucher un jour ouvre sa fiche. */
-export function RegularityCalendar({ sessions, deloadPeriods, now }: Props) {
+export function RegularityCalendar({ sessions, deloadPeriods, now, records, exerciseName }: Props) {
   const [month, setMonth] = useState(() => new Date(now.getFullYear(), now.getMonth(), 1))
   const [opened, setOpened] = useState<string | null>(null)
   const swipeStart = useRef<number | null>(null)
@@ -58,6 +62,7 @@ export function RegularityCalendar({ sessions, deloadPeriods, now }: Props) {
     byDay.set(s.date, [...(byDay.get(s.date) ?? []), s].sort((a, b) => a.startedAt.localeCompare(b.startedAt)))
   }
   const activitiesOn = (day: string) => activities.filter((a) => a.date === day).map((a) => a.type)
+  const recordsOn = (day: string) => (byDay.get(day) ?? []).flatMap((s) => records.get(s.id) ?? [])
 
   const changeMonth = (delta: number) => setMonth(new Date(month.getFullYear(), month.getMonth() + delta, 1))
   const onPointerDown = (e: PointerEvent) => {
@@ -98,11 +103,13 @@ export function RegularityCalendar({ sessions, deloadPeriods, now }: Props) {
             const daySessions = byDay.get(day) ?? []
             const dayActivities = activitiesOn(day)
             const future = day > today
+            const hasRecord = recordsOn(day).length > 0
             const label = [
               date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
               ...daySessions.map((s) => TEMPLATE_NAMES[s.templateId]),
               ...dayActivities.map((a) => (a === 'foot' ? 'foot' : 'tennis')),
               deload ? 'semaine allégée' : '',
+              hasRecord ? 'record battu' : '',
             ]
               .filter(Boolean)
               .join(', ')
@@ -124,6 +131,11 @@ export function RegularityCalendar({ sessions, deloadPeriods, now }: Props) {
                 aria-label={label}
               >
                 <span className="calendar-number">{date.getDate()}</span>
+                {hasRecord && (
+                  <span className="calendar-star" aria-hidden="true">
+                    ★
+                  </span>
+                )}
                 <span className="calendar-marks" aria-hidden="true">
                   {daySessions.map((s) => (
                     <span key={s.id} className={`calendar-dot tpl-${s.templateId}`} />
@@ -153,6 +165,9 @@ export function RegularityCalendar({ sessions, deloadPeriods, now }: Props) {
         <span>
           <span className="legend-deload" /> Semaine allégée
         </span>
+        <span>
+          <span className="calendar-star legend-star">★</span> Record
+        </span>
       </div>
 
       {monthKey(month) <= monthKey(now) && (
@@ -168,6 +183,8 @@ export function RegularityCalendar({ sessions, deloadPeriods, now }: Props) {
           day={opened}
           sessions={byDay.get(opened) ?? []}
           activities={activitiesOn(opened)}
+          records={recordsOn(opened)}
+          exerciseName={exerciseName}
           onClose={() => setOpened(null)}
         />
       )}
@@ -175,7 +192,14 @@ export function RegularityCalendar({ sessions, deloadPeriods, now }: Props) {
   )
 }
 
-function DaySheet(props: { day: string; sessions: Session[]; activities: ActivityType[]; onClose: () => void }) {
+function DaySheet(props: {
+  day: string
+  sessions: Session[]
+  activities: ActivityType[]
+  records: SessionRecord[]
+  exerciseName: (id: string) => string
+  onClose: () => void
+}) {
   const date = new Date(`${props.day}T12:00:00`)
   const title = date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
   return (
@@ -202,6 +226,18 @@ function DaySheet(props: { day: string; sessions: Session[]; activities: Activit
         </div>
       ) : (
         <p className="muted">Pas de séance de muscu ce jour-là.</p>
+      )}
+      {props.records.length > 0 && (
+        <div className="day-records">
+          <span className="day-records-title">★ Records battus</span>
+          {props.records.flatMap(({ exerciseId, records }) =>
+            records.map((r) => (
+              <span key={`${exerciseId}|${r.kind}`} className="small">
+                {props.exerciseName(exerciseId)} · {RECORD_LABELS[r.kind]} : <strong>{formatRecord(r).value}</strong>
+              </span>
+            )),
+          )}
+        </div>
       )}
       <div className="activity-toggles">
         {ACTIVITIES.map(({ type, label }) => {

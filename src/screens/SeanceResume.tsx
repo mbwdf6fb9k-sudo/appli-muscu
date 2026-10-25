@@ -9,6 +9,7 @@ import { useExercisesById } from '../db/exercises'
 import { TEMPLATE_NAMES } from '../db/seed'
 import {
   addSet,
+  bestPreviousVolume,
   changeSessionDate,
   deleteSession,
   deleteSet,
@@ -22,7 +23,7 @@ import { useSettings } from '../db/settings'
 import { formatLongDate, localDateStamp } from '../lib/dates'
 import { formatDuration, formatSet, formatSetsLine, formatVolume } from '../lib/format'
 import { DEFAULT_VALUES, type SetValues } from '../lib/prefill'
-import { findBrokenRecords, formatRecordValue, RECORD_LABELS, type BrokenRecord } from '../lib/records'
+import { findBrokenRecords, formatRecord, RECORD_LABELS, type BrokenRecord, type RecordKind } from '../lib/records'
 import { sessionStats } from '../lib/sessionStats'
 import { canBeDrop, effortSets, setLabel, setTitle } from '../lib/sets'
 
@@ -40,7 +41,12 @@ async function computeHighlights(session: Session): Promise<Highlights> {
       result.firstTimes.push(entry.exerciseId)
       continue
     }
-    const records = findBrokenRecords(entry.type, before, entry.sets)
+    const records = findBrokenRecords(
+      entry.type,
+      before,
+      entry.sets,
+      await bestPreviousVolume(entry.exerciseId, session.startedAt, entry.type),
+    )
     if (records.length > 0) result.records.push({ exerciseId: entry.exerciseId, records })
   }
   return result
@@ -105,17 +111,17 @@ export function SeanceResume({ mode }: { mode: 'resume' | 'history' }) {
             <>
               <h2 className="section-title">Records battus</h2>
               <div className="record-list">
-                {highlights.records.map(({ exerciseId, records }) => (
-                  <div key={exerciseId} className="record-card">
+                {byKind(highlights.records).map(({ kind, items }) => (
+                  <div key={kind} className="record-card">
                     <span className="record-icon">
                       <TrophyIcon />
                     </span>
                     <span className="record-text">
-                      <span className="record-name">{name(exerciseId)}</span>
-                      {records.map((r) => (
-                        <span key={r.kind} className="record-line">
-                          {RECORD_LABELS[r.kind]} : <strong>{formatRecordValue(r.kind, r.value)}</strong>{' '}
-                          <span className="muted">(avant {formatRecordValue(r.kind, r.previous)})</span>
+                      <span className="record-name">{RECORD_LABELS[kind]}</span>
+                      {items.map(({ exerciseId, record }) => (
+                        <span key={exerciseId} className="record-line">
+                          {name(exerciseId)} : <strong>{formatRecord(record).value}</strong>{' '}
+                          <span className="muted">(avant {formatRecord(record).previous})</span>
                         </span>
                       ))}
                     </span>
@@ -162,6 +168,19 @@ function detailLine(entry: SessionExercise): string {
   const warmupText = warmups > 0 ? `${warmups} échauffement${warmups > 1 ? 's' : ''}` : ''
   if (shown.length === 0) return warmupText
   return warmupText ? `${formatSetsLine(entry.type, shown)} · + ${warmupText}` : formatSetsLine(entry.type, shown)
+}
+
+/** Records de la séance rangés par type : « Charge max », « 1RM estimé », « Reps à charge », « Volume (séance) »… */
+function byKind(list: Highlights['records']): { kind: RecordKind; items: { exerciseId: string; record: BrokenRecord }[] }[] {
+  const order = Object.keys(RECORD_LABELS) as RecordKind[]
+  return order
+    .map((kind) => ({
+      kind,
+      items: list.flatMap(({ exerciseId, records }) =>
+        records.filter((r) => r.kind === kind).map((record) => ({ exerciseId, record })),
+      ),
+    }))
+    .filter((group) => group.items.length > 0)
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

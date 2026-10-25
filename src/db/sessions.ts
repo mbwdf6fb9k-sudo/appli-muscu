@@ -11,6 +11,7 @@ import {
 import { setDayChoice } from './days'
 import { localDateStamp } from '../lib/dates'
 import { activeDeload, deloadTarget } from '../lib/deload'
+import { sessionVolume } from '../lib/records'
 import { effortSets, normalizeDrops, workSets } from '../lib/sets'
 import { readSettings } from './settings'
 
@@ -88,6 +89,33 @@ export async function previousSets(exerciseId: string, before: string, type?: Ex
   return sessions.flatMap((s) =>
     s.exercises.filter((e) => e.exerciseId === exerciseId && (!type || e.type === type)).flatMap((e) => workSets(e.sets)),
   )
+}
+
+/** Meilleur volume (kg × reps de travail) d'une séance passée pour cet exercice : record « Volume (séance) ». */
+export async function bestPreviousVolume(exerciseId: string, before: string, type: ExerciseType): Promise<number> {
+  const sessions = await db.sessions
+    .where('exerciseIds')
+    .equals(exerciseId)
+    .filter((s) => s.status === 'done' && s.startedAt < before)
+    .toArray()
+  return Math.max(
+    0,
+    ...sessions.flatMap((s) => s.exercises.filter((e) => e.exerciseId === exerciseId && e.type === type).map((e) => sessionVolume(type, e.sets))),
+  )
+}
+
+/** Dernière note non vide de l'exercice (séances terminées avant `before`), avec sa date. */
+export async function lastNote(exerciseId: string, before: string): Promise<{ note: string; date: string } | null> {
+  const sessions = await db.sessions
+    .where('exerciseIds')
+    .equals(exerciseId)
+    .filter((s) => s.status === 'done' && s.startedAt < before)
+    .toArray()
+  for (const session of sessions.sort((a, b) => b.startedAt.localeCompare(a.startedAt))) {
+    const note = session.exercises.find((e) => e.exerciseId === exerciseId && e.note.trim())?.note.trim()
+    if (note) return { note, date: session.startedAt }
+  }
+  return null
 }
 
 // ---------- Écriture ----------

@@ -3,8 +3,8 @@ import type { DeloadPeriod } from '../db/settings'
 import { localDateStamp } from './dates'
 import { inDeload } from './deload'
 import { setsByMuscle, type MuscleKey } from './muscleVolume'
-import { startOfWeek } from './progress'
-import { computeBests, findBrokenRecords, type RecordKind } from './records'
+import { sessionRecords, startOfWeek } from './progress'
+import { computeBests, type RecordKind } from './records'
 import { sessionStats } from './sessionStats'
 import { workSets } from './sets'
 import { STREAK_MIN_SESSIONS } from './streak'
@@ -42,6 +42,8 @@ export interface MonthRecord {
   exerciseId: string
   kind: RecordKind
   value: number
+  /** Reps à charge : la charge concernée */
+  load?: number
 }
 
 export interface MonthProgress {
@@ -142,18 +144,23 @@ export function monthlyReview(month: string, data: MonthlyData): MonthlyReview {
       const past = history.get(key) ?? []
       const work = workSets(exercise.sets)
       if (during && work.length > 0) {
-        for (const broken of findBrokenRecords(exercise.type, past, work)) {
-          const id = `${exercise.exerciseId}|${broken.kind}`
-          const current = records.get(id)
-          if (!current || broken.value > current.value) {
-            records.set(id, { exerciseId: exercise.exerciseId, kind: broken.kind, value: broken.value })
-          }
-        }
         const entry = monthSets.get(key) ?? { type: exercise.type, before: past, sets: [] }
         entry.sets.push(...work)
         monthSets.set(key, entry)
       }
       history.set(key, [...past, ...work])
+    }
+  }
+  // Records : le meilleur de chaque type et de chaque exercice sur le mois
+  for (const [sessionId, list] of sessionRecords(done)) {
+    if (!monthSessions.some((s) => s.id === sessionId)) continue
+    for (const { exerciseId, records: broken } of list) {
+      for (const r of broken) {
+        const id = `${exerciseId}|${r.kind}`
+        const current = records.get(id)
+        const better = !current || (r.load ?? 0) > (current.load ?? 0) || ((r.load ?? 0) === (current.load ?? 0) && r.value > current.value)
+        if (better) records.set(id, { exerciseId, kind: r.kind, value: r.value, ...(r.load !== undefined ? { load: r.load } : {}) })
+      }
     }
   }
   const progress: MonthProgress[] = []

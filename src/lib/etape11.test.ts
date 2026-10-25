@@ -266,3 +266,95 @@ describe('exercices : création, groupe, fusion', () => {
     expect(await db.sessions.where('exerciseIds').equals('b').count()).toBe(2)
   })
 })
+
+describe('objectif du jour expliqué', () => {
+  const target = { sets: 3, min: 8, max: 12 }
+  it('les trois règles, le poids du corps, la durée, la première fois et la semaine allégée', async () => {
+    const { dailyObjective } = await import('./objective')
+    expect(dailyObjective('weight', [w(12, 50), w(12, 50), w(12, 50)], target, 2.5)!.reason).toBe(
+      'Dernière fois : 12, 12, 12 à 50 kg → haut de la fourchette atteint sur toutes tes séries : passe à 52,5 kg.',
+    )
+    expect(dailyObjective('weight', [w(10, 50), w(9, 50), w(8, 50)], target, 2.5)!.reason).toBe(
+      'Dernière fois : 10, 9, 8 à 50 kg → même charge, vise 11, 10, 9.',
+    )
+    expect(dailyObjective('weight', [w(5, 60), w(4, 60), w(4, 60)], { sets: 3, min: 6, max: 10 }, 2.5)!.reason).toBe(
+      'Dernière fois : 5, 4, 4 à 60 kg, sous la fourchette (6-10) → baisse à 55 kg pour rester dans la fourchette.',
+    )
+    expect(dailyObjective('bodyweight', [w(12, 0), w(12, 0), w(12, 0)], target, 2.5)!.reason).toBe(
+      'Dernière fois : 12, 12, 12 → ajoute 2,5 kg de lest.',
+    )
+    const secs = (n: number): SetEntry => ({ seconds: n, at: '' })
+    expect(dailyObjective('duration', [secs(60), secs(60)], { sets: 2, min: 30, max: 60 }, 2.5)!.reason).toBe(
+      'Dernière fois : 60 s sur toutes les séries → vise 65 s.',
+    )
+    expect(dailyObjective('weight', [], target, 2.5)!.reason).toMatch(/^Pas encore de séance/)
+    expect(dailyObjective('weight', [w(10, 50)], target, 2.5, true)!.reason).toMatch(/^Semaine allégée/)
+    // Une série en plus (la 4e) ne compte pas
+    expect(dailyObjective('weight', [w(12, 50), w(12, 50), w(12, 50), w(6, 50)], target, 2.5)!.rule).toBe('up')
+  })
+})
+
+describe('records plus complets', () => {
+  it('reps à charge égale ou supérieure, volume de séance ; échauffements et dégressives exclus', async () => {
+    const { findBrokenRecords, liveRecords, formatRecord } = await import('./records')
+    const before = [w(8, 40), w(6, 45), w(10, 35)]
+    const broken = findBrokenRecords('weight', before, [w(10, 40), w(10, 40, { warmup: true }), w(20, 40, { drop: true })])
+    const reps = broken.find((r) => r.kind === 'repsAtLoad')!
+    expect(reps).toEqual({ kind: 'repsAtLoad', value: 10, previous: 8, load: 40 })
+    expect(formatRecord(reps)).toEqual({ value: '10 reps à 40 kg', previous: '8 reps' })
+    // Charge jamais soulevée : pas de « reps à charge » (c'est la charge max)
+    expect(findBrokenRecords('weight', before, [w(3, 50)]).map((r) => r.kind)).not.toContain('repsAtLoad')
+    // Volume : meilleur qu'une séance passée
+    const volume = findBrokenRecords('weight', before, [w(8, 40), w(8, 40), w(8, 40)], 900)
+    expect(volume.find((r) => r.kind === 'maxVolume')).toEqual({ kind: 'maxVolume', value: 960, previous: 900 })
+    expect(formatRecord(volume.find((r) => r.kind === 'maxVolume')!).value).toBe('960 kg')
+    // Pendant la séance : la série qui fait dépasser l'ancien volume, une seule fois
+    const live = liveRecords('weight', before, [w(8, 40), w(8, 40), w(8, 40), w(8, 40)], 900)
+    expect([...live.entries()].filter(([, r]) => r.some((x) => x.kind === 'maxVolume')).map(([i]) => i)).toEqual([2])
+  })
+
+  it('records par séance (★ du calendrier, bilan) et dernière note', async () => {
+    const { sessionRecords } = await import('./progress')
+    const { db } = await import('../db/database')
+    const { lastNote } = await import('../db/sessions')
+    const s = (id: string, day: number, sets: SetEntry[], note = ''): Session => ({
+      id,
+      templateId: 'pecs-triceps',
+      date: `2026-10-${day}`,
+      startedAt: `2026-10-${day}T16:00:00.000Z`,
+      endedAt: null,
+      status: 'done',
+      exercises: [{ exerciseId: 'x', type: 'weight', sets, note }],
+      exerciseIds: ['x'],
+    })
+    const sessions = [s('a', 10, [w(8, 40)], 'siège 4, poulie cran 6'), s('b', 12, [w(8, 40)]), s('c', 14, [w(9, 40), w(8, 40)], '  ')]
+    const records = sessionRecords(sessions)
+    expect(records.has('a')).toBe(false)
+    expect(records.has('b')).toBe(false)
+    expect(records.get('c')![0].records.map((r) => r.kind).sort()).toEqual(['best1RM', 'maxVolume', 'repsAtLoad'])
+
+    await db.delete()
+    await db.open()
+    await db.sessions.bulkPut(sessions)
+    expect(await lastNote('x', '2026-10-20T00:00:00.000Z')).toEqual({ note: 'siège 4, poulie cran 6', date: '2026-10-10T16:00:00.000Z' })
+    expect(await lastNote('x', '2026-10-05T00:00:00.000Z')).toBeNull()
+  })
+
+  it('explication de la stagnation', async () => {
+    const { stagnationDetail, describeSets } = await import('./stagnation')
+    const s = (day: number, sets: SetEntry[]): Session => ({
+      id: `d${day}`,
+      templateId: 'pecs-triceps',
+      date: `2026-10-${day}`,
+      startedAt: `2026-10-${day}T16:00:00.000Z`,
+      endedAt: null,
+      status: 'done',
+      exercises: [{ exerciseId: 'x', type: 'weight', sets, note: '', target: { sets: 3, min: 8, max: 12 } }],
+      exerciseIds: ['x'],
+    })
+    const sessions = [s(10, [w(9, 60), w(9, 60), w(8, 60)]), s(12, [w(8, 60), w(8, 60), w(8, 60)]), s(14, [w(9, 60), w(8, 60), w(7, 60)]), s(16, [w(8, 60), w(8, 60), w(7, 60), w(12, 50)])]
+    expect(stagnationDetail(sessions, 'x')).toBe('Pas de progrès depuis 3 séances (60 kg × 8, 8, 7)')
+    expect(describeSets('bodyweight', [w(8, 0), w(7, 0)])).toBe('8, 7 reps')
+    expect(describeSets('weight', [w(8, 60), w(8, 62.5)])).toBe('8 × 60, 8 × 62,5 kg')
+  })
+})

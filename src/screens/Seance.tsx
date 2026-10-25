@@ -24,7 +24,7 @@ import {
 import { useSettings } from '../db/settings'
 import { formatDuration, formatTime } from '../lib/format'
 import { sessionStats } from '../lib/sessionStats'
-import { stagnatingExercises } from '../lib/stagnation'
+import { stagnationDetails } from '../lib/stagnation'
 import { useNow } from '../lib/useNow'
 
 const OPEN_KEY = 'appli-muscu-open-exercise'
@@ -99,7 +99,7 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
   const warmupFor = (index: number, exerciseId: string, fromAbs?: boolean) =>
     fromAbs ? undefined : index === 0 ? 'first' : index === 1 && exercisesById?.get(exerciseId)?.compound ? 'second' : undefined
   // Stagnation : exercices qui n'ont pas progressé sur 3 séances (hors semaines allégées)
-  const stagnating = doneSessions ? stagnatingExercises(doneSessions) : new Set<string>()
+  const stagnating = doneSessions ? stagnationDetails(doneSessions) : new Map<string, string>()
   // Les 14 premiers jours de l'objectif du jour : trouver ses charges
   const firstWeeks =
     !!settings?.featureStartAt && now.getTime() - new Date(settings.featureStartAt).getTime() < 14 * 86_400_000
@@ -182,7 +182,7 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
               onRecord={(exerciseName, records) => setCelebration({ id: Date.now(), exerciseName, records })}
               superset={supersets.get(entry.exerciseId)}
               warmupPosition={warmupFor(index, entry.exerciseId, entry.fromAbs)}
-              stagnating={stagnating.has(entry.exerciseId)}
+              stagnation={stagnating.get(entry.exerciseId)}
             />
           ))}
           {session.exercises.length === 0 && (

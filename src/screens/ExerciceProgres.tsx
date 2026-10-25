@@ -8,7 +8,7 @@ import { useExercisesById } from '../db/exercises'
 import { useDoneSessions } from '../db/sessions'
 import { formatSetsLine, formatShortDate } from '../lib/format'
 import { exerciseHistory, exerciseRecords } from '../lib/progress'
-import { exerciseStagnates } from '../lib/stagnation'
+import { stagnationDetail } from '../lib/stagnation'
 import type { ExerciseType } from '../db/database'
 import { formatRecordValue, RECORD_LABELS, type RecordKind } from '../lib/records'
 
@@ -41,6 +41,7 @@ export function ExerciceProgres() {
   const record = records.find((r) => r.kind === metric)
   const highlight = record ? entries.findIndex((h) => h.sessionId === record.sessionId) : undefined
 
+  const stagnation = stagnationDetail(sessions, id)
   const back = () => (location.key === 'default' ? navigate('/progres') : navigate(-1))
 
   return (
@@ -53,9 +54,9 @@ export function ExerciceProgres() {
         </button>
       }
     >
-      {exerciseStagnates(sessions, id) && (
+      {stagnation && (
         <p className="hint-chip hint-stagnation">
-          <span className="stagnation-badge inline">stagnation</span> Pas de progrès sur 3 séances : baisse de 10 % et remonte
+          <span className="stagnation-badge inline">stagnation</span> {stagnation} : baisse de 10 % et remonte
           {exercise?.tips?.replacement
             ? `, ou passe à l’exercice de remplacement : ${exercise.tips.replacement.replace(/\.$/, '')}.`
             : '.'}

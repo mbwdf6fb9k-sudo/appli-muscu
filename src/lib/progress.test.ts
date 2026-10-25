@@ -87,7 +87,8 @@ describe('historique et records d’un exercice', () => {
   it('trie les séances par date et calcule les meilleures valeurs', () => {
     const history = exerciseHistory(sessions, 'squat')
     expect(history.map((h) => h.sessionId)).toEqual(['s1', 's2', 's3'])
-    expect(history[1].bests).toEqual({ maxKg: 90, best1RM: 120 })
+    // La séance garde aussi son volume (record « Volume (séance) »)
+    expect(history[1].bests).toEqual({ maxKg: 90, best1RM: 120, maxVolume: 900 })
   })
 
   it('date chaque record à la séance où il a été établi', () => {
@@ -95,6 +96,7 @@ describe('historique et records d’un exercice', () => {
     expect(records).toEqual([
       { kind: 'maxKg', value: 100, date: sessions[1].startedAt, sessionId: 's3' },
       { kind: 'best1RM', value: 120, date: sessions[2].startedAt, sessionId: 's2' },
+      { kind: 'maxVolume', value: 1480, date: sessions[0].startedAt, sessionId: 's1' },
     ])
   })
 

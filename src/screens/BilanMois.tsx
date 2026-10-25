@@ -155,7 +155,7 @@ export function BilanMois() {
                       <span className="muted small review-sub">
                         {review.records
                           .filter((r) => r.exerciseId === id)
-                          .map((r) => `${RECORD_LABELS[r.kind]} ${formatRecordValue(r.kind, r.value)}`)
+                          .map((r) => `${RECORD_LABELS[r.kind]} ${formatRecordValue(r.kind, r.value, r.load)}`)
                           .join(' · ')}
                       </span>
                     </span>

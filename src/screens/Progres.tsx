@@ -13,7 +13,7 @@ import { useDoneSessions } from '../db/sessions'
 import { useSettings, type DeloadPeriod } from '../db/settings'
 import { daysSince, formatDaysAgo } from '../lib/dates'
 import { formatDuration, formatNumber, formatShortDate } from '../lib/format'
-import { exerciseSummaries, recordSessionIds, weeklyAverage, weeklyCounts } from '../lib/progress'
+import { exerciseSummaries, recordSessionIds, sessionRecords, weeklyAverage, weeklyCounts } from '../lib/progress'
 import { formatBests } from '../lib/records'
 import { sessionStats } from '../lib/sessionStats'
 import { stagnatingExercises } from '../lib/stagnation'
@@ -61,7 +61,12 @@ export function Progres() {
           <ChevronRightIcon />
         </Link>
       )}
-      <Regularity sessions={sessions} deloadPeriods={settings.deloadPeriods} now={now} />
+      <Regularity
+        sessions={sessions}
+        deloadPeriods={settings.deloadPeriods}
+        now={now}
+        exerciseName={(id) => exercisesById.get(id)?.name ?? 'Exercice supprimé'}
+      />
     </>
   )
 
@@ -174,7 +179,7 @@ function History({ sessions }: { sessions: Session[] }) {
   )
 }
 
-function Regularity(props: { sessions: Session[]; deloadPeriods: DeloadPeriod[]; now: Date }) {
+function Regularity(props: { sessions: Session[]; deloadPeriods: DeloadPeriod[]; now: Date; exerciseName: (id: string) => string }) {
   const { week, month } = sessionCounts(props.sessions, props.now)
   const streak = currentStreak(props.sessions, props.now)
   const best = bestStreak(props.sessions, props.now)
@@ -188,7 +193,13 @@ function Regularity(props: { sessions: Session[]; deloadPeriods: DeloadPeriod[];
           Série : {plural(streak, 'semaine')} d’affilée à 3 séances ou plus · meilleure : {best}
         </p>
       </div>
-      <RegularityCalendar sessions={props.sessions} deloadPeriods={props.deloadPeriods} now={props.now} />
+      <RegularityCalendar
+        sessions={props.sessions}
+        deloadPeriods={props.deloadPeriods}
+        now={props.now}
+        records={sessionRecords(props.sessions)}
+        exerciseName={props.exerciseName}
+      />
     </>
   )
 }
