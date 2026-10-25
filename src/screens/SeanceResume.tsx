@@ -11,14 +11,11 @@ import {
   addSet,
   bestPreviousVolume,
   changeSessionDate,
-  deleteSession,
-  deleteSet,
   previousSets,
-  removeExercise,
   setNote,
-  updateSet,
   useSession,
 } from '../db/sessions'
+import { deleteSessionUndoable, deleteSetUndoable, removeExerciseUndoable, updateSetUndoable } from '../db/undoable'
 import { useSettings } from '../db/settings'
 import { formatLongDate, localDateStamp } from '../lib/dates'
 import { formatDuration, formatSet, formatSetsLine, formatVolume } from '../lib/format'
@@ -79,7 +76,7 @@ export function SeanceResume({ mode }: { mode: 'resume' | 'history' }) {
   async function handleDelete() {
     if (!confirm('Supprimer définitivement cette séance ?\n\nSes séries ne compteront plus dans tes records.')) return
     navigate(home, { replace: true })
-    await deleteSession(session!.id)
+    await deleteSessionUndoable(session!.id)
   }
 
   return (
@@ -254,7 +251,7 @@ function EditSession(props: {
               className="btn btn-ghost btn-danger btn-small"
               onClick={() =>
                 confirm(`Retirer ${exercisesById.get(e.exerciseId)?.name ?? 'cet exercice'} de cette séance ?`) &&
-                removeExercise(session.id, index)
+                removeExerciseUndoable(session.id, index)
               }
             >
               Retirer l’exercice
@@ -279,9 +276,9 @@ function EditSession(props: {
           onSave={(values) =>
             sheet.setIndex === null
               ? addSet(session.id, sheet.index, values)
-              : updateSet(session.id, sheet.index, sheet.setIndex, values)
+              : updateSetUndoable(session.id, sheet.index, sheet.setIndex, values)
           }
-          onDelete={sheet.setIndex === null ? undefined : () => deleteSet(session.id, sheet.index, sheet.setIndex!)}
+          onDelete={sheet.setIndex === null ? undefined : () => deleteSetUndoable(session.id, sheet.index, sheet.setIndex!)}
         />
       )}
     </>

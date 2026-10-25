@@ -540,3 +540,134 @@ describe('bilan du mois : ajouts', () => {
     expect(review.focus.length).toBeLessThanOrEqual(3)
   })
 })
+
+describe('annuler', () => {
+  it('série supprimée ou modifiée, exercice retiré, séance supprimée, pesée supprimée : remis exactement', async () => {
+    const { db } = await import('../db/database')
+    const undoable = await import('../db/undoable')
+    const { currentUndo, runUndo, dismissUndo } = await import('./undo')
+    await db.delete()
+    await db.open()
+    const session: Session = {
+      id: 'u',
+      templateId: 'pecs-triceps',
+      date: '2026-10-24',
+      startedAt: '2026-10-24T16:00:00.000Z',
+      endedAt: '2026-10-24T17:00:00.000Z',
+      status: 'done',
+      exercises: [
+        { exerciseId: 'a', type: 'weight', sets: [w(10, 40, { at: '1' }), w(8, 40, { at: '2' })], note: 'siège 4' },
+        { exerciseId: 'b', type: 'weight', sets: [w(12, 20, { at: '3' })], note: '' },
+      ],
+      exerciseIds: ['a', 'b'],
+    }
+    await db.sessions.put(structuredClone(session))
+    const back = async () => expect(await db.sessions.get('u')).toEqual(session)
+
+    await undoable.deleteSetUndoable('u', 0, 1)
+    expect((await db.sessions.get('u'))!.exercises[0].sets).toHaveLength(1)
+    expect(currentUndo()?.label).toBe('Série supprimée')
+    await runUndo()
+    await back()
+    expect(currentUndo()).toBeNull()
+
+    await undoable.updateSetUndoable('u', 0, 0, { reps: 11, kg: 42.5 })
+    expect(currentUndo()?.label).toBe('Série modifiée')
+    await runUndo()
+    await back()
+
+    // Supprimer la seule série d'un exercice le retire de la séance : l'annulation le remet
+    await undoable.deleteSetUndoable('u', 1, 0)
+    expect((await db.sessions.get('u'))!.exerciseIds).toEqual(['a'])
+    await runUndo()
+    await back()
+
+    await undoable.removeExerciseUndoable('u', 0)
+    await runUndo()
+    await back()
+
+    await undoable.deleteSessionUndoable('u')
+    expect(await db.sessions.get('u')).toBeUndefined()
+    expect(currentUndo()?.label).toBe('Séance supprimée')
+    await runUndo()
+    await back()
+
+    await db.weighIns.put({ date: '2026-10-24', kg: 75 })
+    await undoable.deleteWeighInUndoable('2026-10-24')
+    expect(await db.weighIns.count()).toBe(0)
+    await runUndo()
+    expect(await db.weighIns.get('2026-10-24')).toEqual({ date: '2026-10-24', kg: 75 })
+    dismissUndo()
+  })
+
+  it('le bandeau disparaît tout seul après environ 6 s', async () => {
+    const { vi } = await import('vitest')
+    vi.useFakeTimers()
+    const { currentUndo, offerUndo, UNDO_MS } = await import('./undo')
+    offerUndo('Série supprimée', async () => {})
+    vi.advanceTimersByTime(UNDO_MS - 100)
+    expect(currentUndo()).not.toBeNull()
+    vi.advanceTimersByTime(200)
+    expect(currentUndo()).toBeNull()
+    vi.useRealTimers()
+  })
+})
+
+describe('export CSV', () => {
+  it('séries : séparateur ;, virgule décimale, BOM, types de série, 1RM, volume, note', async () => {
+    const { seriesCsv, weighInsCsv, activitiesCsv, csvCell } = await import('./csv')
+    const exercisesById = new Map<string, Exercise>([['a', { id: 'a', name: 'Développé incliné barre', type: 'weight', muscle: 'pecs' }]])
+    const session: Session = {
+      id: 'c',
+      templateId: 'pecs-triceps',
+      date: '2026-10-24',
+      startedAt: '2026-10-24T16:00:00.000Z',
+      endedAt: null,
+      status: 'done',
+      exercises: [
+        { exerciseId: 'a', type: 'weight', sets: [w(8, 20, { warmup: true }), w(10, 42.5), w(6, 30, { drop: true })], note: 'banc 30°; "sécurités"' },
+        { exerciseId: 'g', type: 'duration', sets: [{ seconds: 45, at: '' }], note: '' },
+      ],
+      exerciseIds: ['a', 'g'],
+    }
+    const csv = seriesCsv([session], exercisesById)
+    expect(csv.startsWith('﻿')).toBe(true)
+    const lines = csv.slice(1).trimEnd().split('\r\n')
+    expect(lines[0]).toBe('date;seance;exercice;groupe;serie;type;kg;reps;duree_s;1rm_estime;volume_kg;note')
+    expect(lines[1]).toBe('2026-10-24;Pecs-Triceps;Développé incliné barre;Pecs;1;échauffement;20;8;;;;"banc 30°; ""sécurités"""')
+    expect(lines[2]).toBe('2026-10-24;Pecs-Triceps;Développé incliné barre;Pecs;2;travail;42,5;10;;56,67;425;"banc 30°; ""sécurités"""')
+    expect(lines[3]).toBe('2026-10-24;Pecs-Triceps;Développé incliné barre;Pecs;3;dégressive;30;6;;;180;"banc 30°; ""sécurités"""')
+    expect(lines[4]).toBe('2026-10-24;Pecs-Triceps;Exercice supprimé;Autre;1;travail;;;45;;;')
+    expect(weighInsCsv([{ date: '2026-10-24', kg: 74.6 }, { date: '2026-10-23', kg: 74 }])).toBe('﻿date;poids_kg\r\n2026-10-23;74\r\n2026-10-24;74,6\r\n')
+    expect(activitiesCsv([{ id: 'x', date: '2026-10-22', type: 'tennis' }])).toBe('﻿date;type\r\n2026-10-22;tennis\r\n')
+    expect(csvCell(1234.5)).toBe('1234,5')
+  })
+
+  it('le .zip contient les 3 fichiers, lisibles tels quels', async () => {
+    const { createZip, crc32 } = await import('./zip')
+    const enc = new TextEncoder()
+    const files = [
+      { name: 'series.csv', data: enc.encode('﻿date;kg\r\n2026-10-24;42,5\r\n') },
+      { name: 'pesees.csv', data: enc.encode('﻿date;poids_kg\r\n') },
+      { name: 'activites.csv', data: enc.encode('﻿date;type\r\n') },
+    ]
+    const zip = createZip(files, new Date(2026, 9, 25, 20, 2))
+    const view = new DataView(zip.buffer)
+    // Fin du zip : 3 entrées ; chaque en-tête local donne le nom, la taille et le CRC
+    const end = zip.length - 22
+    expect(view.getUint32(end, true)).toBe(0x06054b50)
+    expect(view.getUint16(end + 10, true)).toBe(3)
+    let at = 0
+    const dec = new TextDecoder()
+    for (const file of files) {
+      expect(view.getUint32(at, true)).toBe(0x04034b50)
+      const size = view.getUint32(at + 18, true)
+      const nameLength = view.getUint16(at + 26, true)
+      expect(dec.decode(zip.slice(at + 30, at + 30 + nameLength))).toBe(file.name)
+      expect(view.getUint32(at + 14, true)).toBe(crc32(file.data))
+      expect(dec.decode(zip.slice(at + 30 + nameLength, at + 30 + nameLength + size))).toBe(dec.decode(file.data))
+      at += 30 + nameLength + size
+    }
+    expect(crc32(enc.encode('123456789'))).toBe(0xcbf43926)
+  })
+})

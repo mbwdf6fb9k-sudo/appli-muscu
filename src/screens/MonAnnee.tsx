@@ -10,7 +10,8 @@ import type { WeighIn } from '../db/database'
 import { setSetting, useSettings, type Settings } from '../db/settings'
 import { useMeasurements } from '../db/measurements'
 import { usePhotos } from '../db/photos'
-import { deleteWeighIn, saveWeighIn, useWeighIns } from '../db/weighIns'
+import { deleteWeighInUndoable } from '../db/undoable'
+import { saveWeighIn, useWeighIns } from '../db/weighIns'
 import { localDateStamp } from '../lib/dates'
 import { formatNumber, formatShortDate, parseNumber } from '../lib/format'
 import { useNow } from '../lib/useNow'
@@ -224,7 +225,7 @@ function WeighInSheet({ weighIn, onClose }: { weighIn: WeighIn; onClose: () => v
         <button
           className="btn btn-ghost btn-danger"
           onClick={async () => {
-            await deleteWeighIn(weighIn.date)
+            await deleteWeighInUndoable(weighIn.date)
             onClose()
           }}
         >

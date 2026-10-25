@@ -4,6 +4,7 @@ import { EditableRow } from '../components/EditableRow'
 import { ExerciseCard, type SupersetInfo } from '../components/ExerciseCard'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { RecordToast, type RecordCelebration } from '../components/RecordToast'
+import { removeExerciseUndoable } from '../db/undoable'
 import { ChevronLeftIcon, PlusIcon } from '../components/icons'
 import { Screen } from '../components/Screen'
 import { Sheet } from '../components/Sheet'
@@ -16,7 +17,6 @@ import {
   addExercises,
   finishSession,
   moveExercise,
-  removeExercise,
   templateListFromSession,
   useActiveSession,
   useDoneSessions,
@@ -115,7 +115,7 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
     const entry = session.exercises[index]
     const name = exercisesById?.get(entry.exerciseId)?.name ?? 'cet exercice'
     if (entry.sets.length > 0 && !confirm(`Retirer ${name} et ses ${entry.sets.length} série(s) ?`)) return
-    void removeExercise(session.id, index)
+    void removeExerciseUndoable(session.id, index)
   }
 
   async function handleFinish() {

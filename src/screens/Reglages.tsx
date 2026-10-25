@@ -5,7 +5,7 @@ import { BackupError, importBackup } from '../db/backup'
 import { setSetting, useSettings, type Theme } from '../db/settings'
 import { ChevronLeftIcon, ChevronRightIcon } from '../components/icons'
 import { Screen } from '../components/Screen'
-import { exportToFile, readBackupFile } from '../lib/backupFile'
+import { exportCsvToFile, exportToFile, readBackupFile } from '../lib/backupFile'
 import { daysSince, formatDaysAgo, formatFullDate } from '../lib/dates'
 import { formatNumber } from '../lib/format'
 import { isStoragePersisted } from '../lib/storage'
@@ -50,6 +50,19 @@ export function Reglages() {
       if (result !== 'cancelled') setMessage({ text: 'Sauvegarde exportée ✓' })
     } catch {
       setMessage({ text: 'L’export a échoué. Réessaie.', error: true })
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleCsvExport() {
+    setBusy(true)
+    setMessage(null)
+    try {
+      const result = await exportCsvToFile()
+      if (result !== 'cancelled') setMessage({ text: 'Export CSV prêt ✓ (ce n’est pas une sauvegarde)' })
+    } catch {
+      setMessage({ text: 'L’export CSV a échoué. Réessaie.', error: true })
     } finally {
       setBusy(false)
     }
@@ -153,6 +166,13 @@ export function Reglages() {
         <button className="btn btn-secondary" onClick={() => fileInput.current?.click()} disabled={busy}>
           Importer une sauvegarde
         </button>
+        <button className="btn btn-secondary" onClick={handleCsvExport} disabled={busy}>
+          Exporter en CSV
+        </button>
+        <p className="muted small">
+          CSV (séries, pesées, foot et tennis) pour Excel ou Power BI, dans un .zip. Il ne remplace pas la sauvegarde
+          et ne peut pas être réimporté.
+        </p>
         <input
           ref={fileInput}
           type="file"

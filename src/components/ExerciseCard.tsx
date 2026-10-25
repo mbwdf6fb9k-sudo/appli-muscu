@@ -1,7 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useEffect, useRef, useState } from 'react'
 import type { Exercise, ExerciseTips, Session, SessionExercise } from '../db/database'
-import { addSet, bestPreviousVolume, deleteSet, lastNote, previousSets, setNote, updateSet, useLastPerformance } from '../db/sessions'
+import { addSet, bestPreviousVolume, lastNote, previousSets, setNote, useLastPerformance } from '../db/sessions'
+import { deleteSetUndoable, updateSetUndoable } from '../db/undoable'
 import { effortText, formatSet, formatSetsLine, formatShortDate, formatTarget } from '../lib/format'
 import { haptic } from '../lib/haptics'
 import { dailyObjective, warmupSets } from '../lib/objective'
@@ -297,8 +298,8 @@ function ExerciseBody(props: ExerciseBodyProps) {
           initial={withoutTime(entry.sets[editing])}
           step={step}
           onClose={() => setEditing(null)}
-          onSave={(values) => updateSet(session.id, index, editing, values)}
-          onDelete={() => deleteSet(session.id, index, editing)}
+          onSave={(values) => updateSetUndoable(session.id, index, editing, values)}
+          onDelete={() => deleteSetUndoable(session.id, index, editing)}
         />
       )}
     </div>

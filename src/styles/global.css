@@ -3397,3 +3397,50 @@ a.btn {
 .review-board-summary {
   margin-bottom: 8px;
 }
+
+/* ============ Étape 11 : annuler ============ */
+.undo-toast {
+  position: fixed;
+  z-index: 80;
+  left: calc(var(--safe-left) + 12px);
+  right: calc(var(--safe-right) + 12px);
+  bottom: calc(var(--safe-bottom) + 16px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 4px 6px 4px 16px;
+  border-radius: 16px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  animation: fade-in 0.2s var(--ease);
+}
+
+.undo-toast.above-tabbar {
+  bottom: calc(var(--safe-bottom) + 76px);
+}
+
+.ios-short-viewport .undo-toast.above-tabbar {
+  bottom: 76px;
+}
+
+.undo-button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  /* Le bandeau est clair en thème sombre : or foncé (≥ 4.5:1) ; sombre en thème clair : or */
+  color: #87631a;
+  font-size: 15px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+:root[data-theme='light'] .undo-button {
+  color: var(--accent);
+}

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { HashRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { TabBar } from './components/TabBar'
+import { UndoToast } from './components/UndoToast'
 import { db } from './db/database'
 import { useSettings } from './db/settings'
 import { useApplyTheme } from './lib/theme'
@@ -62,6 +63,7 @@ function Layout() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {!inSession && <TabBar />}
+      <UndoToast aboveTabBar={!inSession} />
     </div>
   )
 }
