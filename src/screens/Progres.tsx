@@ -1,22 +1,22 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { BarChart } from '../components/charts/BarChart'
-import { MuscleVolume } from '../components/MuscleVolume'
-import { RegularityCalendar } from '../components/RegularityCalendar'
 import { ComingSoon } from '../components/ComingSoon'
 import { ChevronRightIcon, ProgressIcon, TrophyIcon } from '../components/icons'
+import { MuscleVolume } from '../components/MuscleVolume'
+import { ProgressBoard } from '../components/ProgressBoard'
+import { RegularityCalendar } from '../components/RegularityCalendar'
 import { Screen, SettingsLink } from '../components/Screen'
-import type { Exercise, Session } from '../db/database'
+import type { Session } from '../db/database'
 import { unclassified, useExercisesById } from '../db/exercises'
 import { TEMPLATE_NAMES } from '../db/seed'
 import { useDoneSessions } from '../db/sessions'
 import { useSettings, type DeloadPeriod } from '../db/settings'
-import { daysSince, formatDaysAgo } from '../lib/dates'
+import { useWeighIns } from '../db/weighIns'
 import { formatDuration, formatNumber, formatShortDate } from '../lib/format'
-import { exerciseSummaries, recordSessionIds, sessionRecords, weeklyAverage, weeklyCounts } from '../lib/progress'
-import { formatBests } from '../lib/records'
+import { recordSessionIds, sessionRecords, weeklyAverage, weeklyCounts } from '../lib/progress'
+import { currentBodyweight, progressBoard, type BoardPeriod } from '../lib/progressBoard'
 import { sessionStats } from '../lib/sessionStats'
-import { stagnatingExercises } from '../lib/stagnation'
 import { bestStreak, currentStreak, sessionCounts } from '../lib/streak'
 import { useNow } from '../lib/useNow'
 
@@ -31,6 +31,17 @@ function readView(): View {
   }
 }
 
+const PERIOD_KEY = 'appli-muscu-tableau-periode'
+
+function readPeriod(): BoardPeriod {
+  try {
+    const saved = localStorage.getItem(PERIOD_KEY)
+    return saved === '3m' || saved === 'all' ? saved : '4w'
+  } catch {
+    return '4w'
+  }
+}
+
 const plural = (n: number, word: string) => `${n} ${word}${n > 1 ? 's' : ''}`
 
 export function Progres() {
@@ -39,6 +50,16 @@ export function Progres() {
   const settings = useSettings()
   const now = useNow(60_000)
   const [view, setViewState] = useState<View>(readView)
+  const [period, setPeriodState] = useState<BoardPeriod>(readPeriod)
+  const weighIns = useWeighIns()
+  const setPeriod = (next: BoardPeriod) => {
+    setPeriodState(next)
+    try {
+      localStorage.setItem(PERIOD_KEY, next)
+    } catch {
+      // pas grave : on reviendra sur 4 semaines
+    }
+  }
 
   const setView = (next: View) => {
     setViewState(next)
@@ -49,7 +70,8 @@ export function Progres() {
     }
   }
 
-  if (!sessions || !exercisesById || !settings) return null
+  if (!sessions || !exercisesById || !settings || !weighIns) return null
+  const bodyweight = currentBodyweight(weighIns, settings.startWeight)
 
   // Tout en haut : exercices à classer, compteurs, série de semaines et calendrier de régularité
   const toClassify = unclassified([...exercisesById.values()]).length
@@ -113,7 +135,12 @@ export function Progres() {
         />
       </div>
 
-      <MuscleVolume sessions={sessions} exercisesById={exercisesById} now={now} />
+      <MuscleVolume
+        sessions={sessions}
+        exercisesById={exercisesById}
+        now={now}
+        board={progressBoard(sessions, exercisesById, '4w', now, bodyweight)}
+      />
 
       <div className="segmented progress-switch" role="group" aria-label="Affichage">
         <button aria-pressed={view === 'historique'} onClick={() => setView('historique')}>
@@ -127,7 +154,12 @@ export function Progres() {
       {view === 'historique' ? (
         <History sessions={sessions} />
       ) : (
-        <ExerciseList sessions={sessions} exercisesById={exercisesById} now={now} stagnating={stagnatingExercises(sessions)} />
+        <ProgressBoard
+          board={progressBoard(sessions, exercisesById, period, now, bodyweight)}
+          period={period}
+          onPeriod={setPeriod}
+          exercisesById={exercisesById}
+        />
       )}
     </Screen>
   )
@@ -200,33 +232,6 @@ function Regularity(props: { sessions: Session[]; deloadPeriods: DeloadPeriod[];
         records={sessionRecords(props.sessions)}
         exerciseName={props.exerciseName}
       />
-    </>
-  )
-}
-
-function ExerciseList(props: { sessions: Session[]; exercisesById: Map<string, Exercise>; now: Date; stagnating: Set<string> }) {
-  const summaries = exerciseSummaries(props.sessions)
-  return (
-    <>
-      <h2 className="section-title">{plural(summaries.length, 'exercice')} déjà fait{summaries.length > 1 ? 's' : ''}</h2>
-      <div className="card list-card">
-        {summaries.map((summary) => (
-          <Link key={summary.exerciseId} to={`/progres/exercice/${summary.exerciseId}`} className="list-row history-row">
-            <span className="history-text">
-              <span className="history-name">
-                {props.exercisesById.get(summary.exerciseId)?.name ?? 'Exercice supprimé'}
-                {props.stagnating.has(summary.exerciseId) && <span className="stagnation-badge inline">stagnation</span>}
-              </span>
-              <span className="muted small">
-                {formatBests(summary.type, summary.bests)}
-                {formatBests(summary.type, summary.bests) && ' · '}
-                {formatDaysAgo(daysSince(summary.lastDate, props.now))}
-              </span>
-            </span>
-            <ChevronRightIcon />
-          </Link>
-        ))}
-      </div>
     </>
   )
 }

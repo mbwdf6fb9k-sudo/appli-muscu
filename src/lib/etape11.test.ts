@@ -358,3 +358,100 @@ describe('records plus complets', () => {
     expect(describeSets('weight', [w(8, 60), w(8, 62.5)])).toBe('8 × 60, 8 × 62,5 kg')
   })
 })
+
+describe('tableau de progrès', () => {
+  const now = new Date(2026, 10, 20, 20)
+  let n = 0
+  const s = (daysAgo: number, id: string, sets: SetEntry[], extra: Partial<Session> = {}, type: Session['exercises'][number]['type'] = 'weight'): Session => {
+    const d = new Date(now.getTime() - daysAgo * 86_400_000)
+    return {
+      id: `b${n++}`,
+      templateId: 'pecs-triceps',
+      date: d.toISOString().slice(0, 10),
+      startedAt: d.toISOString(),
+      endedAt: null,
+      status: 'done',
+      exercises: [{ exerciseId: id, type, sets, note: '', target: { sets: 3, min: 6, max: 12 } }],
+      exerciseIds: [id],
+      ...extra,
+    }
+  }
+  const byId = new Map<string, Exercise>([
+    ['up', { id: 'up', name: 'Up', type: 'weight', muscle: 'pecs' }],
+    ['flat', { id: 'flat', name: 'Flat', type: 'weight', muscle: 'dos' }],
+    ['drop', { id: 'drop', name: 'Drop', type: 'weight', muscle: 'pecs' }],
+    ['few', { id: 'few', name: 'Few', type: 'weight', muscle: 'biceps' }],
+    ['stag', { id: 'stag', name: 'Stag', type: 'weight', muscle: 'triceps' }],
+    ['bw', { id: 'bw', name: 'Tractions', type: 'bodyweight', muscle: 'dos' }],
+  ])
+
+  it('score de séance : 1RM sans limite de reps, poids du corps + lest, durée', async () => {
+    const { sessionScore, bestSetLabel } = await import('./progressBoard')
+    expect(sessionScore('weight', [w(15, 30), w(10, 32)], 75)).toBeCloseTo(45)
+    expect(sessionScore('bodyweight', [w(10, 5)], 75)).toBeCloseTo(80 * (1 + 10 / 30))
+    expect(sessionScore('duration', [{ seconds: 45, at: '' }, { seconds: 60, at: '' }], 75)).toBe(60)
+    expect(bestSetLabel('weight', [w(8, 60), w(10, 55)], 75)).toBe('60 kg × 8')
+    expect(bestSetLabel('bodyweight', [w(8, 0)], 75)).toBe('8 reps')
+  })
+
+  it('statuts : progression, stable, en baisse, pas assez de données, stagnation ; séances allégées et séries en plus exclues', async () => {
+    const { progressBoard, sortRows } = await import('./progressBoard')
+    const sessions = [
+      s(20, 'up', [w(8, 60)]),
+      s(14, 'up', [w(8, 60)]),
+      s(7, 'up', [w(8, 62.5)]),
+      s(2, 'up', [w(9, 62.5)]),
+      s(20, 'flat', [w(10, 50)]),
+      s(14, 'flat', [w(10, 50)]),
+      s(7, 'flat', [w(10, 50)]),
+      // la 4e série (en plus) et la séance allégée ne comptent pas
+      s(3, 'flat', [w(10, 50), w(10, 50), w(10, 50), w(8, 50)]),
+      s(1, 'flat', [w(4, 50)], { deload: true }),
+      s(20, 'drop', [w(10, 80)]),
+      s(14, 'drop', [w(10, 80)]),
+      s(7, 'drop', [w(8, 75)]),
+      s(2, 'drop', [w(8, 70)]),
+      s(5, 'few', [w(10, 20)]),
+      s(2, 'few', [w(11, 20)]),
+      // stagnation : 4 séances, aucune des 3 dernières ne bat la 1re (dont 2 hors période de 4 semaines)
+      s(60, 'stag', [w(10, 40)]),
+      s(50, 'stag', [w(9, 40)]),
+      s(15, 'stag', [w(10, 40)]),
+      s(8, 'stag', [w(9, 40)]),
+      s(4, 'stag', [w(10, 40)]),
+    ]
+    const board = progressBoard(sessions, byId, '4w', now, 75)
+    const status = Object.fromEntries(board.rows.map((r) => [r.exerciseId, r.status]))
+    expect(status).toEqual({ up: 'progress', flat: 'stable', drop: 'down', few: 'insufficient', stag: 'stagnation' })
+    expect(board.counts).toEqual({ progress: 1, stable: 1, stagnation: 1, down: 1, insufficient: 1 })
+    const up = board.rows.find((r) => r.exerciseId === 'up')!
+    expect(up.best).toBe('62,5 kg × 9')
+    expect(up.evolution).toBeGreaterThan(0.02)
+    // Depuis le début : la stagnation reste une stagnation
+    expect(progressBoard(sessions, byId, 'all', now, 75).rows.find((r) => r.exerciseId === 'stag')!.status).toBe('stagnation')
+    const name = (id: string) => byId.get(id)!.name
+    expect(sortRows(board.rows, 'stagnation', name).map((r) => r.exerciseId)).toEqual(['stag', 'drop', 'flat', 'up', 'few'])
+    expect(sortRows(board.rows, 'muscle', name).map((r) => r.exerciseId)).toEqual(['flat', 'drop', 'up', 'few', 'stag'])
+  })
+
+  it('record battu sur les 3 dernières séances = progression, même sous +2 %', async () => {
+    const { progressBoard } = await import('./progressBoard')
+    const sessions = [s(20, 'flat', [w(10, 50)]), s(14, 'flat', [w(10, 50)]), s(7, 'flat', [w(10, 50)]), s(2, 'flat', [w(11, 50)])]
+    expect(progressBoard(sessions, byId, '4w', now, 75).rows[0]).toMatchObject({ status: 'progress' })
+  })
+
+  it('tendance par muscle', async () => {
+    const { muscleTrends, formatTrend } = await import('./progressBoard')
+    const rows = [
+      { exerciseId: 'a', type: 'weight' as const, muscle: 'pecs' as const, status: 'progress' as const, evolution: 0.06, best: '', lastDate: '', sessions: 4 },
+      { exerciseId: 'b', type: 'weight' as const, muscle: 'pecs' as const, status: 'stable' as const, evolution: 0, best: '', lastDate: '', sessions: 4 },
+      { exerciseId: 'c', type: 'weight' as const, muscle: 'dos' as const, status: 'insufficient' as const, evolution: 0.5, best: '', lastDate: '', sessions: 2 },
+    ]
+    const trends = muscleTrends(rows)
+    expect(trends.get('pecs')).toBeCloseTo(0.03)
+    expect(trends.has('dos')).toBe(false)
+    expect(formatTrend(0.03)).toBe('↑ +3 %')
+    expect(formatTrend(-0.04)).toBe('↓ −4 %')
+    expect(formatTrend(0.01)).toBe('→ +1 %')
+  })
+})

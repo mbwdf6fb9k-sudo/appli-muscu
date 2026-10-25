@@ -24,6 +24,11 @@
   --tpl-pecs: #d55181;
   --tpl-jambes: #008300;
   --tpl-bras: #c98500;
+  /* Statuts du tableau de progrès (texte ≥ 4.5:1 sur la surface, vérifié) */
+  --status-up: #4cc38a;
+  --status-stable: #959ca5;
+  --status-stag: #f0a04b;
+  --status-down: #ff6b5e;
 
   --radius: 16px;
   --gutter: 16px;
@@ -57,6 +62,10 @@
   --tpl-pecs: #e87ba4;
   --tpl-jambes: #008300;
   --tpl-bras: #eda100;
+  --status-up: #1b7a4b;
+  --status-stable: #5d6570;
+  --status-stag: #a85a00;
+  --status-down: #c0301f;
 
   color-scheme: light;
 }
@@ -3152,4 +3161,176 @@ a.btn {
 .last-note-copy {
   flex: none;
   color: var(--accent-text);
+}
+
+/* ============ Étape 11 : tableau de progrès ============ */
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.board-sort button {
+  font-size: 15px;
+}
+
+.board-summary {
+  margin: 4px 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.board .section-title {
+  margin-top: 14px;
+}
+
+.board-flat {
+  margin-top: 4px;
+}
+
+.board-row .history-text {
+  min-width: 0;
+}
+
+.status {
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.status-progress {
+  color: var(--status-up);
+}
+
+.status-stable,
+.status-insufficient {
+  color: var(--status-stable);
+}
+
+.status-insufficient {
+  font-weight: 500;
+  white-space: normal;
+  max-width: 90px;
+  text-align: right;
+}
+
+.status-stagnation {
+  color: var(--status-stag);
+}
+
+.status-down {
+  color: var(--status-down);
+}
+
+/* ============ Étape 11 : carte des muscles ============ */
+.body-map {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.body-figures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.body-figure {
+  margin: 0;
+  text-align: center;
+}
+
+.body-figure svg {
+  display: block;
+  width: 100%;
+  max-width: 150px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.body-figure figcaption {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.body-base {
+  pointer-events: none;
+  fill: var(--surface-2);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.body-zone {
+  cursor: pointer;
+  stroke: var(--surface);
+  stroke-width: 1.5;
+  outline: none;
+}
+
+.body-zone:focus-visible {
+  stroke: var(--text);
+}
+
+.level-0 {
+  fill: var(--chart-muted);
+  background: var(--chart-muted);
+}
+
+.level-1 {
+  fill: color-mix(in srgb, var(--chart) 28%, var(--surface-2));
+  background: color-mix(in srgb, var(--chart) 28%, var(--surface-2));
+}
+
+.level-2 {
+  fill: color-mix(in srgb, var(--chart) 52%, var(--surface-2));
+  background: color-mix(in srgb, var(--chart) 52%, var(--surface-2));
+}
+
+.level-3 {
+  fill: color-mix(in srgb, var(--chart) 76%, var(--surface-2));
+  background: color-mix(in srgb, var(--chart) 76%, var(--surface-2));
+}
+
+.level-4 {
+  fill: var(--chart);
+  background: var(--chart);
+}
+
+.body-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.body-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.body-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.muscle-trend {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.muscle-stats {
+  margin: 0 0 14px;
+}
+
+.muscle-stats .stat-value {
+  font-size: 18px;
 }
