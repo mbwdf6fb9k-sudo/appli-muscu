@@ -1,0 +1,191 @@
+import 'fake-indexeddb/auto'
+import Dexie from 'dexie'
+import { describe, expect, it } from 'vitest'
+import { exportBackup, importBackup, parseBackup } from '../db/backup'
+import { MuscuDB, type Exercise, type Session, type SetEntry, type Template } from '../db/database'
+import { applyExerciseDefaults, applyMuscleDefaults, applyProgram } from '../db/program'
+import { DEFAULT_EXERCISES, DEFAULT_TEMPLATES } from '../db/seed'
+import { readSettings } from '../db/settings'
+import {
+  BARBELL_SESSION,
+  INCLINE_BARBELL,
+  LATERAL_MACHINE,
+  PULLOVER_MACHINE,
+  WIDE_CHEST_PRESS,
+  applyStep11,
+} from '../db/step11'
+import { exerciseStagnates } from './stagnation'
+
+const w = (reps: number, kg: number, extra: Partial<SetEntry> = {}): SetEntry => ({ reps, kg, at: '', ...extra })
+
+/** Données comme l'export du 25/10 : base v7 avec 3 exercices créés dans l'appli, sans groupe. */
+function v7Data() {
+  const program = applyProgram(structuredClone(DEFAULT_EXERCISES), structuredClone(DEFAULT_TEMPLATES))
+  const exercises: Exercise[] = [
+    ...applyMuscleDefaults(applyExerciseDefaults(program.exercises)),
+    { id: PULLOVER_MACHINE, name: 'pull-over machine', type: 'weight' },
+    { id: WIDE_CHEST_PRESS, name: 'wide chest press', type: 'weight' },
+    { id: LATERAL_MACHINE, name: 'élévation latérale machine', type: 'weight' },
+  ]
+  const templates: Template[] = program.templates.map((t) => {
+    // Comme sur le téléphone : couché et élévations poulie remplacés par les exercices créés
+    if (t.id === 'pecs-triceps') {
+      return {
+        ...t,
+        exerciseIds: [
+          'developpe-incline-halteres',
+          WIDE_CHEST_PRESS,
+          'ecarte-poulie-vis-a-vis',
+          LATERAL_MACHINE,
+          'extension-triceps-au-dessus-de-la-tete',
+          'extension-triceps-poulie-haute-corde',
+        ],
+      }
+    }
+    if (t.id === 'jambes') return { ...t, exerciseIds: ['hack-squat', 'presse-a-cuisses', 'leg-curl', 'leg-extension', 'tirage-vertical-unilateral', LATERAL_MACHINE] }
+    return t
+  })
+  const session = (id: string, templateId: Session['templateId'], date: string, exercises: [string, SetEntry[], string?][]): Session => ({
+    id,
+    templateId,
+    date,
+    startedAt: `${date}T16:00:00.000Z`,
+    endedAt: `${date}T17:05:00.000Z`,
+    status: 'done',
+    exercises: exercises.map(([exerciseId, sets, note]) => ({ exerciseId, type: 'weight', sets, note: note ?? '' })),
+    exerciseIds: exercises.map(([id]) => id),
+  })
+  const sessions = [
+    session(BARBELL_SESSION, 'pecs-triceps', '2026-10-24', [
+      ['developpe-incline-halteres', [w(8, 20, { warmup: true }), w(10, 40), w(7, 40), w(5, 45)]],
+      [WIDE_CHEST_PRESS, [w(10, 50), w(9, 50), w(8, 50)]],
+      [LATERAL_MACHINE, [w(15, 20), w(14, 20), w(12, 20)], 'multi flight'],
+    ]),
+    session('5d4e023b-b312-4cb6-a780-edc031d9fad0', 'dos-biceps', '2026-10-24', [[PULLOVER_MACHINE, [w(12, 40), w(12, 40)]]]),
+    session('3748700e-6486-453c-a6a1-f731cbb1a9a1', 'jambes', '2026-10-25', [
+      ['hack-squat', [w(10, 60), w(10, 60), w(9, 60)]],
+      ['presse-a-cuisses', [w(12, 120), w(12, 120)]],
+    ]),
+  ]
+  return { exercises, templates, sessions }
+}
+
+async function createV7(name: string) {
+  const v7 = new Dexie(name)
+  v7.version(1).stores({ settings: 'key' })
+  v7.version(2).stores({ exercises: 'id, name', templates: 'id', days: 'date', sessions: 'id, status, date, templateId, startedAt, *exerciseIds' })
+  v7.version(3).stores({ weighIns: 'date' })
+  v7.version(4).stores({ supplements: 'id, order', intakes: 'id, date, supplementId' })
+  v7.version(5).stores({})
+  v7.version(6).stores({ activities: 'id, date' })
+  v7.version(7).stores({ measurements: 'date', photos: 'id, date' })
+  const data = v7Data()
+  await v7.table('exercises').bulkPut(data.exercises)
+  await v7.table('templates').bulkPut(data.templates)
+  await v7.table('sessions').bulkPut(data.sessions)
+  await v7.table('weighIns').bulkPut([{ date: '2026-10-23', kg: 74 }, { date: '2026-10-24', kg: 75 }])
+  await v7.table('activities').bulkPut([{ id: '2026-10-24|tennis', date: '2026-10-24', type: 'tennis' }])
+  await v7.table('photos').put({ id: 'p', date: '2026-10-24', pose: 'face', dataUrl: 'data:image/jpeg;base64,AAAA', width: 1, height: 1 })
+  await v7.table('supplements').put({ id: 'creatine', name: 'Créatine', training: 'after', rest: 'lunch', order: 6 })
+  await v7.table('settings').bulkPut([{ key: 'theme', value: 'dark' }, { key: 'featureStartAt', value: '2026-10-23T15:53:30.686Z' }])
+  v7.close()
+  return data
+}
+
+describe('migration v7 → v8', () => {
+  it('ne perd rien et applique les changements de l’étape 11', async () => {
+    const name = `v7-${crypto.randomUUID()}`
+    const before = await createV7(name)
+    const db = new MuscuDB(name)
+
+    // Rien de perdu
+    expect(await db.sessions.count()).toBe(3)
+    expect(await db.weighIns.count()).toBe(2)
+    expect(await db.activities.count()).toBe(1)
+    expect(await db.photos.count()).toBe(1)
+    expect((await db.supplements.get('creatine'))?.name).toBe('Créatine')
+    expect(await readSettings(db)).toMatchObject({ theme: 'dark', featureStartAt: '2026-10-23T15:53:30.686Z', footDays: [] })
+    const untouched = before.sessions[1]
+    expect(await db.sessions.get(untouched.id)).toEqual(untouched)
+
+    // Exercices : mêmes identifiants, renommés et classés
+    expect(await db.exercises.get(PULLOVER_MACHINE)).toMatchObject({ name: 'Pull-over machine', muscle: 'dos', step: 2.5 })
+    expect((await db.exercises.get(PULLOVER_MACHINE))?.compound).toBeUndefined()
+    expect(await db.exercises.get(WIDE_CHEST_PRESS)).toMatchObject({ name: 'Wide chest press', muscle: 'pecs', compound: true, step: 2.5 })
+    expect(await db.exercises.get(LATERAL_MACHINE)).toMatchObject({ name: 'Élévations latérales machine', muscle: 'epaules', step: 2.5 })
+    expect((await db.exercises.get(WIDE_CHEST_PRESS))?.tips?.replacement).toBe('Développé couché barre.')
+    expect((await db.exercises.get('hip-thrust'))?.muscle).toBe('fessiers')
+    expect((await db.exercises.get('presse-a-cuisses'))?.tips?.replacement).toBe('Hack squat.')
+    expect(await db.exercises.get(INCLINE_BARBELL)).toMatchObject({ name: 'Développé incliné barre', muscle: 'pecs', compound: true, step: 2.5 })
+    // Les exercices retirés des modèles restent dans la liste
+    expect((await db.exercises.get('hack-squat'))?.hidden).toBeUndefined()
+    expect((await db.exercises.get('pull-over-poulie'))?.hidden).toBeUndefined()
+
+    // Modèles
+    const dos = (await db.templates.get('dos-biceps'))!
+    expect(dos.exerciseIds[3]).toBe(PULLOVER_MACHINE)
+    expect(dos.exerciseIds).not.toContain('pull-over-poulie')
+    expect(dos.targets?.[PULLOVER_MACHINE]).toEqual({ sets: 2, min: 12, max: 15, rir: '0-1', rest: '1-1,5 min' })
+    const pecs = (await db.templates.get('pecs-triceps'))!
+    expect(pecs.exerciseIds.slice(0, 4)).toEqual([INCLINE_BARBELL, WIDE_CHEST_PRESS, 'ecarte-poulie-vis-a-vis', LATERAL_MACHINE])
+    expect(pecs.exerciseIds).toHaveLength(6)
+    expect(pecs.targets?.[INCLINE_BARBELL]).toEqual({ sets: 3, min: 6, max: 10, rir: '2', rest: '2-3 min' })
+    expect(pecs.targets?.[WIDE_CHEST_PRESS]).toEqual({ sets: 3, min: 6, max: 10, rir: '1-2', rest: '2-3 min' })
+    expect(pecs.targets?.[LATERAL_MACHINE]).toEqual({ sets: 3, min: 12, max: 20, rir: '0-1', rest: '1 min' })
+    const jambes = (await db.templates.get('jambes'))!
+    expect(jambes.exerciseIds).toEqual(['presse-a-cuisses', 'hip-thrust', 'leg-curl', 'leg-extension', 'tirage-vertical-unilateral', LATERAL_MACHINE])
+    expect(jambes.targets?.['leg-curl']?.sets).toBe(4)
+    expect(jambes.targets?.['hack-squat']).toBeUndefined()
+    expect((await db.templates.get('bras'))?.exerciseIds).toEqual(before.templates.find((t) => t.id === 'bras')!.exerciseIds)
+
+    // Historique : séries du développé incliné rattachées à la barre
+    const fixed = (await db.sessions.get(BARBELL_SESSION))!
+    expect(fixed.exercises[0].exerciseId).toBe(INCLINE_BARBELL)
+    expect(fixed.exercises[0].sets).toEqual(before.sessions[0].exercises[0].sets)
+    expect(fixed.exerciseIds[0]).toBe(INCLINE_BARBELL)
+    expect(await db.sessions.where('exerciseIds').equals('developpe-incline-halteres').count()).toBe(0)
+    expect(await db.sessions.where('exerciseIds').equals(INCLINE_BARBELL).count()).toBe(1)
+    await db.delete()
+  })
+
+  it('peut être appliquée deux fois sans rien changer de plus', () => {
+    const once = applyStep11(v7Data())
+    expect(applyStep11(structuredClone(once))).toEqual(once)
+  })
+
+  it('un export v7 s’importe avec les mêmes changements ; un export v1 aussi', async () => {
+    const data = v7Data()
+    const database = new MuscuDB(`import-v7-${crypto.randomUUID()}`)
+    const file = JSON.stringify({ app: 'appli-muscu', schemaVersion: 7, exportedAt: '2026-10-25T18:00:00.000Z', tables: { settings: [], ...data } })
+    await importBackup(database, parseBackup(file))
+    expect((await database.exercises.get(WIDE_CHEST_PRESS))?.name).toBe('Wide chest press')
+    expect((await database.sessions.get(BARBELL_SESSION))?.exercises[0].exerciseId).toBe(INCLINE_BARBELL)
+    expect((await exportBackup(database)).schemaVersion).toBe(8)
+
+    const old = new MuscuDB(`import-v1-${crypto.randomUUID()}`)
+    await importBackup(old, parseBackup(JSON.stringify({ app: 'appli-muscu', schemaVersion: 1, exportedAt: '2026-10-01T10:00:00.000Z', tables: { settings: [{ key: 'theme', value: 'light' }] } })))
+    expect((await old.templates.get('pecs-triceps'))?.exerciseIds[0]).toBe(INCLINE_BARBELL)
+    expect((await old.exercises.get('hip-thrust'))?.muscle).toBe('fessiers')
+    await database.delete()
+    await old.delete()
+  })
+})
+
+describe('séries retenues : les N premières séries de travail', () => {
+  it('une série en plus ne compte pas dans la stagnation', () => {
+    let n = 0
+    const s = (sets: SetEntry[]): Session => ({
+      id: `s${n}`,
+      templateId: 'pecs-triceps',
+      date: `2026-10-0${++n}`,
+      startedAt: `2026-10-0${n}T16:00:00.000Z`,
+      endedAt: null,
+      status: 'done',
+      exercises: [{ exerciseId: 'x', type: 'weight', sets, note: '', target: { sets: 2, min: 8, max: 12 } }],
+      exerciseIds: ['x'],
+    })
+    // 60 × 10, 10 à chaque fois : une 3e série en plus (60 × 12) ne doit pas compter comme un progrès
+    const sessions = [s([w(10, 60), w(10, 60)]), s([w(10, 60), w(9, 60)]), s([w(10, 60), w(10, 60), w(12, 60)]), s([w(9, 60), w(9, 60), w(12, 60)])]
+    expect(exerciseStagnates(sessions, 'x')).toBe(true)
+  })
+})

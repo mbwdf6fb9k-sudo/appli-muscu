@@ -11,7 +11,8 @@ export const MUSCLE_LABELS: Record<MuscleKey, string> = {
   biceps: 'Biceps',
   triceps: 'Triceps',
   quadriceps: 'Quadriceps',
-  ischios: 'Ischios-fessiers',
+  ischios: 'Ischios',
+  fessiers: 'Fessiers',
   mollets: 'Mollets',
   abdos: 'Abdos',
   autre: 'Autre',
@@ -25,6 +26,7 @@ export const MUSCLE_ORDER: MuscleGroup[] = [
   'triceps',
   'quadriceps',
   'ischios',
+  'fessiers',
   'mollets',
   'abdos',
 ]

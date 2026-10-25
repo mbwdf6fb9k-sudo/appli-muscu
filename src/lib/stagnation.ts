@@ -41,14 +41,17 @@ export function isStagnating(type: ExerciseType, sessionsSets: SetEntry[][]): bo
   return !perfs.slice(-STAGNATION_SESSIONS).some((p) => beats(p, best))
 }
 
-/** Stagnation d'un exercice d'après l'historique (séances allégées exclues, type actuel seulement). */
+/**
+ * Stagnation d'un exercice d'après l'historique (séances allégées exclues, type actuel seulement),
+ * sur les N premières séries de travail de chaque séance.
+ */
 export function exerciseStagnates(sessions: Session[], exerciseId: string): boolean {
   const history = exerciseHistory(sessions, exerciseId).filter((h) => !h.deload)
   const type = history.at(-1)?.type
   if (!type) return false
   return isStagnating(
     type,
-    history.filter((h) => h.type === type).map((h) => h.sets),
+    history.filter((h) => h.type === type).map((h) => h.retained),
   )
 }
 

@@ -29,6 +29,8 @@ export interface Settings {
   deloadSnoozedUntil: string | null
   /** Dernier bilan du mois vu ou fermé (AAAA-MM) : carte d'Aujourd'hui */
   monthlyReviewSeen: string | null
+  /** Jours de foot habituels (0 = dimanche … 6 = samedi) : séance conseillée */
+  footDays: number[]
 }
 
 export interface DeloadPeriod {
@@ -54,6 +56,7 @@ export const DEFAULT_SETTINGS: Settings = {
   deloadPeriods: [],
   deloadSnoozedUntil: null,
   monthlyReviewSeen: null,
+  footDays: [],
 }
 
 export async function readSettings(database: MuscuDB = db): Promise<Settings> {

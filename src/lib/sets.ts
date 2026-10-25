@@ -1,4 +1,4 @@
-import type { SetEntry } from '../db/database'
+import type { SessionExercise, SetEntry } from '../db/database'
 
 /**
  * Séries de travail : sans les échauffements ni les suites dégressives.
@@ -6,6 +6,16 @@ import type { SetEntry } from '../db/database'
  */
 export function workSets(sets: SetEntry[]): SetEntry[] {
   return sets.filter((s) => !s.warmup && !s.drop)
+}
+
+/**
+ * Séries retenues pour l'objectif du jour, la stagnation et le score de progrès :
+ * les N premières séries de travail, N étant le nombre prévu par l'objectif de la séance.
+ * Les séries en plus comptent seulement dans le volume.
+ */
+export function retainedSets(entry: Pick<SessionExercise, 'sets' | 'target'>): SetEntry[] {
+  const work = workSets(entry.sets)
+  return entry.target ? work.slice(0, entry.target.sets) : work
 }
 
 /** Séries de travail avec leurs suites dégressives (volume et affichage). */

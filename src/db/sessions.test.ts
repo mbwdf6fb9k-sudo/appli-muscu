@@ -24,8 +24,8 @@ beforeEach(async () => {
 describe('séances', () => {
   it('démarre avec les exercices du modèle et marque la journée', async () => {
     const session = await startSession('pecs-triceps', new Date(2026, 9, 22, 18, 0))
-    expect(session.exercises.map((e) => e.exerciseId)[0]).toBe('developpe-incline-halteres')
-    expect(session.exercises[0].target).toEqual({ sets: 3, min: 6, max: 10, rir: '1-2', rest: '2-3 min' })
+    expect(session.exercises.map((e) => e.exerciseId)[0]).toBe('developpe-incline-barre')
+    expect(session.exercises[0].target).toEqual({ sets: 3, min: 6, max: 10, rir: '2', rest: '2-3 min' })
     expect((await db.days.get('2026-10-22'))?.choice).toBe('pecs-triceps')
     // Une seule séance en cours à la fois
     expect((await startSession('jambes')).id).toBe(session.id)
@@ -44,9 +44,9 @@ describe('séances', () => {
     const current = await startSession('jambes', new Date(2026, 9, 22, 18, 0))
     await addSet(current.id, 0, { reps: 5, kg: 100 })
 
-    const last = await lastPerformance('hack-squat', current.startedAt)
+    const last = await lastPerformance('presse-a-cuisses', current.startedAt)
     expect(last?.sets.map((s) => s.kg)).toEqual([90, 90])
-    expect(await previousSets('hack-squat', current.startedAt)).toHaveLength(3)
+    expect(await previousSets('presse-a-cuisses', current.startedAt)).toHaveLength(3)
   })
 
   it('à la fin, les exercices sans série ne sont pas gardés', async () => {
@@ -72,8 +72,8 @@ describe('séances', () => {
     // Supprimer la seule série d'un exercice le retire de la séance
     await deleteSet(session.id, 1, 0)
     const edited = (await db.sessions.get(session.id))!
-    expect(edited.exercises.map((e) => e.exerciseId)).toEqual(['hack-squat'])
-    expect(edited.exerciseIds).toEqual(['hack-squat'])
+    expect(edited.exercises.map((e) => e.exerciseId)).toEqual(['presse-a-cuisses'])
+    expect(edited.exerciseIds).toEqual(['presse-a-cuisses'])
 
     // Changer la date garde l'heure et la durée
     await changeSessionDate(session.id, '2026-10-18')

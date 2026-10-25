@@ -120,7 +120,7 @@ describe('migration v6 → v7', () => {
     await database.measurements.put({ date: '2026-10-23', taille: 80 })
     await database.photos.put({ id: 'p1', date: '2026-10-23', pose: 'dos', dataUrl: 'data:image/jpeg;base64,AAAA', width: 1, height: 1 })
     const backup = await exportBackup(database)
-    expect(backup.schemaVersion).toBe(7)
+    expect(backup.schemaVersion).toBe(8)
     expect(backup.tables.measurements).toHaveLength(1)
     expect(backup.tables.photos).toHaveLength(1)
     // Réimport du nouvel export : identique

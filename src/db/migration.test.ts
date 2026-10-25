@@ -7,7 +7,8 @@ import { DEFAULT_EXERCISES } from './seed'
 import { readSettings } from './settings'
 
 // 37 exercices d'origine + 5 nouveaux du programme (étape 7)
-const EXERCISE_COUNT = DEFAULT_EXERCISES.length + 5
+// + 5 exercices du programme (étape 7) + le développé incliné barre (étape 11)
+const EXERCISE_COUNT = DEFAULT_EXERCISES.length + 6
 
 describe('migration v1 → v2', () => {
   it('garde les réglages et ajoute les exercices et modèles par défaut', async () => {

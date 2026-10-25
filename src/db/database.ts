@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable, type Transaction } from 'dexie'
 import { applyExerciseDefaults, applyMuscleDefaults, applyProgram } from './program'
 import { DEFAULT_EXERCISES, DEFAULT_SUPPLEMENTS, DEFAULT_TEMPLATES } from './seed'
+import { applyStep11 } from './step11'
 
 export interface SettingRow {
   key: string
@@ -40,6 +41,7 @@ export type MuscleGroup =
   | 'triceps'
   | 'quadriceps'
   | 'ischios'
+  | 'fessiers'
   | 'mollets'
   | 'abdos'
 
@@ -186,7 +188,7 @@ export interface Photo {
 }
 
 /** Version actuelle du schéma (la plus haute déclarée ci-dessous). */
-export const SCHEMA_VERSION = 7
+export const SCHEMA_VERSION = 8
 
 export class MuscuDB extends Dexie {
   settings!: EntityTable<SettingRow, 'key'>
@@ -252,6 +254,9 @@ export class MuscuDB extends Dexie {
       })
       .upgrade(applyMuscleDefaultsToDb)
 
+    // Étape 11 : groupe « fessiers », exercices renommés et classés, nouveaux modèles, séance du 24/10 corrigée
+    this.version(8).stores({}).upgrade(applyStep11ToDb)
+
     // Base toute neuve : exercices, compléments et programme par défaut
     this.on('populate', async (tx) => {
       await seedDefaults(tx)
@@ -259,6 +264,7 @@ export class MuscuDB extends Dexie {
       await applyProgramToDb(tx)
       await applyExerciseDefaultsToDb(tx)
       await applyMuscleDefaultsToDb(tx)
+      await applyStep11ToDb(tx)
     })
   }
 }
@@ -280,6 +286,17 @@ async function applyExerciseDefaultsToDb(tx: Transaction): Promise<void> {
 
 async function applyMuscleDefaultsToDb(tx: Transaction): Promise<void> {
   await tx.table('exercises').bulkPut(applyMuscleDefaults(await tx.table('exercises').toArray()))
+}
+
+async function applyStep11ToDb(tx: Transaction): Promise<void> {
+  const result = applyStep11({
+    exercises: await tx.table('exercises').toArray(),
+    templates: await tx.table('templates').toArray(),
+    sessions: await tx.table('sessions').toArray(),
+  })
+  await tx.table('exercises').bulkPut(result.exercises)
+  await tx.table('templates').bulkPut(result.templates)
+  await tx.table('sessions').bulkPut(result.sessions)
 }
 
 async function seedSupplements(tx: Transaction): Promise<void> {

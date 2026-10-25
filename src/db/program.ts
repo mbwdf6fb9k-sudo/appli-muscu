@@ -379,7 +379,8 @@ const MUSCLES: Record<MuscleGroup, string[]> = {
     'kickback',
   ],
   quadriceps: ['squat', 'hack-squat', 'presse-a-cuisses', 'fentes-bulgares', 'leg-extension'],
-  ischios: ['leg-curl', 'souleve-de-terre-roumain', 'hip-thrust'],
+  ischios: ['leg-curl', 'souleve-de-terre-roumain'],
+  fessiers: ['hip-thrust'],
   mollets: ['mollets-debout', 'mollets-presse'],
   abdos: ['crunch-poulie', 'releves-de-jambes-suspendu', 'roue-abdominale', 'gainage'],
 }

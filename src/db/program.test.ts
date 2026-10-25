@@ -87,7 +87,8 @@ describe('migration v4 → v5', () => {
     expect((await v5.supplements.get('zinc'))?.name).toBe('Zinc')
     // Même id, nouveau nom : l'historique du leg curl suit
     expect((await v5.exercises.get('leg-curl'))?.name).toBe('Leg curl assis')
-    expect((await v5.templates.get('jambes'))?.exerciseIds[0]).toBe('hack-squat')
+    // Ouvert avec la dernière version : le modèle Jambes de l'étape 11 commence par la presse
+    expect((await v5.templates.get('jambes'))?.exerciseIds[0]).toBe('presse-a-cuisses')
     await v5.delete()
   })
 

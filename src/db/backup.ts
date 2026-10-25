@@ -1,6 +1,7 @@
-import { SCHEMA_VERSION, type Exercise, type MuscuDB, type Template } from './database'
+import { SCHEMA_VERSION, type Exercise, type MuscuDB, type Session, type Template } from './database'
 import { applyExerciseDefaults, applyMuscleDefaults, applyProgram } from './program'
 import { DEFAULT_EXERCISES, DEFAULT_SUPPLEMENTS, DEFAULT_TEMPLATES } from './seed'
+import { applyStep11 } from './step11'
 
 export const BACKUP_APP_ID = 'appli-muscu'
 
@@ -51,6 +52,15 @@ const BACKUP_MIGRATIONS: Record<number, (tables: BackupTables) => BackupTables> 
     exercises: applyMuscleDefaults((tables.exercises ?? []) as Exercise[]),
     measurements: [],
     photos: [],
+  }),
+  // v7 → v8 : groupe « fessiers », exercices renommés et classés, nouveaux modèles, séance du 24/10 corrigée
+  7: (tables) => ({
+    ...tables,
+    ...applyStep11({
+      exercises: (tables.exercises ?? []) as Exercise[],
+      templates: (tables.templates ?? []) as Template[],
+      sessions: (tables.sessions ?? []) as Session[],
+    }),
   }),
 }
 

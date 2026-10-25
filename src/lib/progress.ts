@@ -1,6 +1,6 @@
 import type { ExerciseType, Session, SetEntry } from '../db/database'
 import { computeBests, findBrokenRecords, RECORD_KINDS, type Bests, type RecordKind } from './records'
-import { effortSets, workSets } from './sets'
+import { effortSets, retainedSets, workSets } from './sets'
 
 /** Lundi 0 h de la semaine de la date (heure locale). */
 export function startOfWeek(date: Date): Date {
@@ -54,6 +54,8 @@ export interface HistoryEntry {
   sets: SetEntry[]
   /** Séries à afficher : séries de travail et leurs dégressives */
   shown: SetEntry[]
+  /** Les N premières séries de travail (N = séries prévues) : stagnation et score de progrès */
+  retained: SetEntry[]
   bests: Bests
   /** Séance de semaine allégée */
   deload: boolean
@@ -73,6 +75,7 @@ export function exerciseHistory(sessions: Session[], exerciseId: string): Histor
       startedAt: session.startedAt,
       type: exercise.type,
       shown: effortSets(exercise.sets),
+      retained: retainedSets(exercise),
       sets,
       bests: computeBests(exercise.type, sets),
       deload: !!session.deload,
