@@ -172,7 +172,8 @@ Le planning du jour dépend du type de journée (section 2).
 - Les termes techniques sont évités dans l'appli : pas de « RIR », la consigne est écrite en clair.
 
 ### Repère de stagnation
-- Un exercice est en stagnation quand aucune de ses **3 dernières séances** (de travail, hors semaine allégée) ne bat la meilleure performance des séances d'avant.
+- Un exercice est en stagnation quand aucune de ses **3 dernières séances** (hors semaine allégée) ne bat la meilleure performance des séances d'avant. Seules comptent les **N premières séries de travail** de chaque séance (N = séries prévues par l'objectif) ; les séries en plus comptent seulement dans le volume.
+- Le badge s'explique : « Pas de progrès depuis 3 séances (60 kg × 8, 8, 7) ».
 - Progresser : charge max plus haute, ou même charge max avec plus de reps au total à cette charge (poids du corps : plus de lest, ou même lest avec plus de reps ; durée : plus de secondes).
 - Badge « stagnation » en séance, dans Progrès → Exercices et sur la fiche de l'exercice, avec le conseil « baisse de 10 % et remonte, ou passe à l'exercice de remplacement ». Il disparaît dès que l'exercice progresse.
 
@@ -193,16 +194,33 @@ Le planning du jour dépend du type de journée (section 2).
 ### Séries par muscle (Progrès)
 - Carte sous le graphique des séances par semaine : séries de travail (sans échauffements) par muscle, **semaine en cours** ou **moyenne des 4 dernières semaines terminées** (seulement depuis la première séance).
 - Repère indicatif 10 à 20 séries par semaine et par muscle (hors abdos) ; un muscle sous 10 en moyenne est marqué « en retard ».
-- Chaque exercice a un **muscle principal** (Dos, Pecs, Épaules, Biceps, Triceps, Quadriceps, Ischios-fessiers, Mollets, Abdos), modifiable dans sa fiche ; sans muscle, il compte dans « Autre ».
+- Chaque exercice a un **groupe musculaire** (Dos, Pecs, Épaules, Biceps, Triceps, Quadriceps, Ischios, Fessiers, Mollets, Abdos), **obligatoire à la création** (Réglages ou pendant la séance) et modifiable dans sa fiche (les statistiques se recalculent). Un exercice ancien sans groupe compte dans « Autre » et un bandeau dans Progrès invite à le classer.
+- **Carte des muscles** : silhouette face et dos (SVG), chaque zone colorée selon les séries de travail directes (gris = 0, puis 1-4, 5-9, 10-14, 15+), même bascule semaine / moyenne ; toucher une zone donne séries, tendance et exercices avec leur statut.
+- Chaque muscle affiche sa **tendance** (évolution moyenne de ses exercices sur 4 semaines : ↑ / → / ↓).
 
 ### Bilan du mois (Progrès)
-- Lien « Bilan d'octobre » sous le calendrier (suit le mois affiché) ; carte « Ton bilan d'octobre est prêt » sur Aujourd'hui les 7 premiers jours du mois suivant, jusqu'à ce qu'il soit vu ou fermé.
+- Lien « Bilan d'octobre » sous le calendrier (suit le mois affiché) ; carte « Bilan d'octobre » sur Aujourd'hui à partir du 1er du mois suivant, jusqu'à ce qu'on la ferme (pas de carte pour un mois sans séance).
+- En plus : meilleure série de semaines du mois, statuts des exercices sur le mois (règles du tableau de progrès), **points à travailler** (3 au plus) : exercices en stagnation, puis muscles sous 80 % des séries prévues par les modèles (chaque modèle Dos-Biceps, Pecs-Triceps, Jambes, Bras compté une fois par semaine, sans les abdos).
 - Contenu calculé à partir des données : séances (et écart avec le mois d'avant), répartition par type, semaines à 3 séances ou plus, temps à la salle, foot/tennis, semaine allégée, séries de travail, volume, records battus, les 3 exercices qui progressent le plus (1RM estimé, reps au poids du corps, secondes en durée), séries par muscle, poids (moyenne 7 jours) en début et fin de mois, dernières mensurations comparées aux précédentes, photos du mois.
+
+### Étape 11 (modifs-seances-2.md)
+- **Exercices** : Pull-over machine, Wide chest press et Élévations latérales machine (créés dans l'appli, mêmes identifiants) renommés, classés et fiches remplies ; nouvel exercice **Développé incliné barre** (poids total barre comprise) ; hip thrust classé Fessiers ; fiches de la presse et du hip thrust. Les séries du 24/10 notées au développé incliné haltères sont rattachées à la barre.
+- **« Fusionner avec… »** dans la fiche d'un exercice : tout l'historique passe sur l'exercice gardé (séries réunies si les deux sont dans la même séance), il le remplace dans les modèles, l'autre est supprimé.
+- **Modèles** : Dos-Biceps (pull-over machine 2 × 12-15), Pecs-Triceps (incliné barre, wide chest press, écarté, élévations machine, extensions), Jambes (presse, hip thrust, leg curl 4 × 10-12, leg extension, tirage vertical unilatéral, élévations machine ; plus de hack squat ni de soulevé de terre roumain ni de mollets).
+- **Haltères** : on note toujours le poids d'un seul haltère (palier 2 kg = haltère suivant).
+- **Tableau de progrès** (Progrès → Exercices) : score d'une séance = meilleur 1RM estimé (Epley, sans limite de reps) sur les séries retenues ; poids du corps : (dernière pesée + lest) ; durée : meilleure durée. Statuts sur la période (4 semaines, 3 mois, depuis le début ; séances allégées exclues), dans cet ordre : moins de 3 séances → pas assez de données ; moyenne des 2 dernières ≤ −5 % du meilleur → en baisse ; stagnation ; moyenne des 2 dernières ≥ +2 % des 2 premières, ou record de force (pas de volume) sur les 3 dernières → progression ; sinon stable. Résumé en haut, une ligne par exercice (meilleure série, évolution, statut écrit et coloré, date), tri par muscle ou stagnations d'abord.
+- **Séance conseillée** (Aujourd'hui, si rien n'est commencé ni fait) : repos après 4 séances dans la semaine ou 3 jours de muscu d'affilée ; Bras écarté la veille de Dos-Biceps/Pecs-Triceps et inversement ; même séance < 48 h écartée ; Jambes écartée si foot/tennis la veille ou le jour même, ou si demain est un jour de foot habituel (réglage « Jour(s) de foot habituel(s) ») ; sinon la séance faite il y a le plus longtemps (jamais faite d'abord ; égalité : Dos-Biceps, Pecs-Triceps, Bras, Jambes). Bouton « Choisir », jamais bloquant.
+- **Objectif du jour expliqué** : une ligne de raison sous l'objectif (« Dernière fois : 12, 12, 12 à 50 kg → haut de la fourchette atteint sur toutes tes séries : passe à 52,5 kg. »).
+- **Records** : en plus, reps à charge égale ou supérieure (« 10 reps à 40 kg », il faut déjà avoir fait cette charge ou plus) et volume de l'exercice sur une séance ; échauffements et dégressives exclus ; célébrés pendant la séance ; résumé de fin de séance rangé par type ; case « Volume (séance) » dans la fiche ; ★ au calendrier les jours de record, listés dans la fiche du jour.
+- **Dernière note** : sous l'exercice, « Dernière note (24/10) : … » avec « Reprendre » qui la copie dans la note du jour.
+- **Annuler** : bandeau d'environ 6 s après suppression ou modification d'une série, retrait d'un exercice, suppression d'une séance ou d'une pesée ; « Annuler » remet exactement l'état d'avant.
+- **Export CSV** (Réglages) : series.csv (date, séance, exercice, groupe, n° de série, type travail/échauffement/dégressive, kg, reps, durée, 1RM estimé, volume, note), pesees.csv, activites.csv, dans un .zip ; séparateur « ; », virgule décimale, UTF-8 avec BOM, dates AAAA-MM-JJ. Ce n'est pas une sauvegarde (non importable).
 
 ### Données
 - Version 6 de la base : table `activities` (foot/tennis), `warmup` sur les séries, `deload` sur les séances, `compound` (polyarticulaire) sur les exercices, réglages `featureStartAt`, `deloadPeriods`, `deloadSnoozedUntil`. La migration ne perd rien ; l'export inclut tout et les anciens exports sont convertis à l'import.
 - Version 7 (étape 9) : tables `measurements` (une ligne par jour) et `photos` (image JPEG en texte, date, pose), `muscle` sur les exercices (rempli par la migration sans écraser un choix existant), réglage `monthlyReviewSeen`. Même règle : migration sans perte, export complet, anciens exports convertis à l'import.
 - Étape 10 : champ facultatif `drop` sur les séries (suite dégressive). Les séries existantes n'ont pas ce champ et restent des séries normales : pas de nouvelle version de la base.
+- Version 8 (étape 11) : groupe `fessiers`, migration des exercices, modèles et de la séance du 24/10 (ciblée par identifiant, sans effet si l'élément n'existe pas), réglage `footDays`. Même règle : rien n'est perdu, les anciens exports sont convertis à l'import.
 
 ## Plus tard (pas dans la première version)
 - ~~Suggestion d'augmenter la charge quand toutes les reps sont réussies.~~ Fait : objectif du jour (section 8).

@@ -3363,14 +3363,18 @@ a.btn {
 .weekday-picker {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
-}
-
-.weekday {
-  min-height: 44px;
-  border: 1px solid var(--border);
+  gap: 0;
   border-radius: 12px;
   background: var(--surface-2);
+}
+
+/* Sans espace entre les jours : chaque bouton garde 44 px de large, même sur iPhone SE */
+.weekday {
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
   color: var(--text-muted);
   font-size: 16px;
   font-weight: 650;
@@ -3378,7 +3382,6 @@ a.btn {
 }
 
 .weekday.on {
-  border-color: var(--accent);
   background: var(--accent);
   color: var(--on-accent);
 }

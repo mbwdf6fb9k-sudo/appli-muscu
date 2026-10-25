@@ -222,7 +222,7 @@ export function monthlyReview(month: string, data: MonthlyData): MonthlyReview {
   // Statuts sur le mois et points à travailler
   const board = boardBetween(data.sessions, data.exercisesById, from, to, data.bodyweight)
   const name = (id: string) => data.exercisesById.get(id)?.name ?? 'Exercice supprimé'
-  const focus = board.rows
+  const stagnations = board.rows
     .filter((r) => r.status === 'stagnation')
     .map((r) => `${name(r.exerciseId)} : pas de progrès depuis 3 séances (baisse de 10 % et remonte, ou change d’exercice).`)
   const now = data.now ?? new Date()
@@ -234,10 +234,12 @@ export function monthlyReview(month: string, data: MonthlyData): MonthlyReview {
     .map(([muscle, planned]) => ({ muscle, planned, average: Math.round(((muscleSets.get(muscle) ?? 0) / elapsedWeeks) * 10) / 10 }))
     .filter((m) => monthSessions.length > 0 && m.average < m.planned * PLANNED_RATIO)
     .sort((a, b) => a.average / a.planned - b.average / b.planned)
-  for (const m of lagging) {
+  const muscles = lagging.map((m) => {
     const avg = m.average.toLocaleString('fr-FR', { maximumFractionDigits: 1 })
-    focus.push(`${MUSCLE_LABELS[m.muscle]} : ${avg} série${m.average >= 2 ? 's' : ''} par semaine en moyenne, ${m.planned} prévues.`)
-  }
+    return `${MUSCLE_LABELS[m.muscle]} : ${avg} série${m.average >= 2 ? 's' : ''} par semaine en moyenne, ${m.planned} prévues.`
+  })
+  // Les deux sortes de points : 2 stagnations au plus, puis les muscles, puis le reste s'il y a de la place
+  const focus = [...stagnations.slice(0, 2), ...muscles, ...stagnations.slice(2)]
 
   return {
     month,
