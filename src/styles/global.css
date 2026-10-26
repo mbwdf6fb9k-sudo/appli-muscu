@@ -1,8 +1,8 @@
 /* ============ Thème ============ */
 :root {
-  /* Couleur d'accent unique de l'appli (or) */
-  --accent: #e0b45a;
-  --on-accent: #1a1406;
+  /* Couleur d'accent unique de l'appli (violet) ; texte violet très foncé dessus (5,9:1, vérifié) */
+  --accent: #9b7bff;
+  --on-accent: #150a33;
 
   --bg: #0e0f11;
   --surface: #17191c;
@@ -14,8 +14,8 @@
   --danger: #ff6b5e;
   --tabbar-bg: rgba(14, 15, 17, 0.86);
   /* Graphiques : contraste ≥ 3:1 sur la surface des cartes (vérifié) */
-  --chart: #e0b45a;
-  --chart-wash: rgba(224, 180, 90, 0.1);
+  --chart: #9b7bff;
+  --chart-wash: rgba(155, 123, 255, 0.12);
   --chart-muted: #3a3f46;
   /* Pesées brutes sous la moyenne : gris lisible (≥ 3:1, vérifié) */
   --chart-secondary: #7a828c;
@@ -50,12 +50,12 @@
   --border: #dde0e5;
   --text: #121418;
   --text-muted: #5d6570;
-  --accent-text: #87631a;
+  --accent-text: #6a46e0;
   --danger: #c0301f;
   --tabbar-bg: rgba(255, 255, 255, 0.88);
-  /* L'or clair est trop pâle sur blanc : or foncé pour les graphiques (≥ 3:1, vérifié) */
-  --chart: #9c7524;
-  --chart-wash: rgba(156, 117, 36, 0.1);
+  /* Le violet clair est trop pâle sur blanc : violet foncé pour le texte et les graphiques (5,9:1, vérifié) */
+  --chart: #6a46e0;
+  --chart-wash: rgba(106, 70, 224, 0.1);
   --chart-muted: #cfd4da;
   --chart-secondary: #8a919a;
   --tpl-dos: #2a78d6;
@@ -3437,8 +3437,8 @@ a.btn {
   border: 0;
   border-radius: 12px;
   background: transparent;
-  /* Le bandeau est clair en thème sombre : or foncé (≥ 4.5:1) ; sombre en thème clair : or */
-  color: #87631a;
+  /* Le bandeau est clair en thème sombre : violet foncé (≥ 4.5:1) ; sombre en thème clair : violet */
+  color: #6a46e0;
   font-size: 15px;
   font-weight: 750;
   cursor: pointer;
