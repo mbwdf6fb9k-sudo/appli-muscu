@@ -10,6 +10,7 @@ import { prefillNextSet, type SetValues } from '../lib/prefill'
 import { liveRecords, type BrokenRecord } from '../lib/records'
 import { canBeDrop, effortSets, setLabel, setTitle, workSets } from '../lib/sets'
 import { CheckIcon, ChevronDownIcon, CopyIcon, DropIcon, InfoIcon, PlusIcon, TrophyIcon } from './icons'
+import { AlternativesSheet } from './AlternativesSheet'
 import { SetEditSheet, SetInputs, withoutTime } from './SetEditSheet'
 
 interface ExerciseCardProps {
@@ -119,6 +120,7 @@ function ExerciseBody(props: ExerciseBodyProps) {
     void addSet(session.id, index, values)
   }
   const [editing, setEditing] = useState<number | null>(null)
+  const [swapping, setSwapping] = useState(false)
   // Dernière note non vide de l'exercice (toutes séances confondues) ; « Reprendre » la copie dans celle du jour
   const previousNote = useLiveQuery(() => lastNote(entry.exerciseId, session.startedAt), [entry.exerciseId, session.startedAt])
   const [copiedNote, setCopiedNote] = useState<string | null>(null)
@@ -189,7 +191,13 @@ function ExerciseBody(props: ExerciseBodyProps) {
           {tips?.replacement ? `, ou passe à l’exercice de remplacement : ${tips.replacement.replace(/\.$/, '')}.` : '.'}
         </p>
       )}
-      {tips && <TipsToggle tips={tips} />}
+      <div className="card-tools">
+        {tips && <TipsToggle tips={tips} />}
+        <button className="btn btn-ghost btn-small machine-busy" onClick={() => setSwapping(true)}>
+          Machine prise ?
+        </button>
+      </div>
+      {swapping && <AlternativesSheet session={session} index={index} onClose={() => setSwapping(false)} />}
 
       <div className="last-time">
         {loading ? (

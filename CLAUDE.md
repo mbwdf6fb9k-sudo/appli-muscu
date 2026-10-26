@@ -216,11 +216,18 @@ Le planning du jour dépend du type de journée (section 2).
 - **Annuler** : bandeau d'environ 6 s après suppression ou modification d'une série, retrait d'un exercice, suppression d'une séance ou d'une pesée ; « Annuler » remet exactement l'état d'avant.
 - **Export CSV** (Réglages) : series.csv (date, séance, exercice, groupe, n° de série, type travail/échauffement/dégressive, kg, reps, durée, 1RM estimé, volume, note), pesees.csv, activites.csv, dans un .zip ; séparateur « ; », virgule décimale, UTF-8 avec BOM, dates AAAA-MM-JJ. Ce n'est pas une sauvegarde (non importable).
 
+### Machine prise ? (étape 12)
+- Dans chaque exercice de la séance, à côté de « Consignes » : un panneau propose 2 à 4 remplacements pensés pour Fitness Park (même muscle, même mouvement, autre matériel : barre, haltères, poulie, Smith, machine), avec le matériel et « fait il y a X jours / jamais fait » (déjà faits d'abord). Hors ligne, sans IA.
+- Un toucher remplace l'exercice **pour cette séance seulement** (le modèle ne change pas) ; l'objectif est repris de l'exercice remplacé (entre reps et durée : celui du modèle de l'exercice choisi). Si des séries étaient déjà faites, elles restent et le remplaçant s'ajoute juste après. « Annuler » possible.
+- Le remplaçant a son propre historique (dernière fois, objectif du jour, records). Un exercice proposé n'est créé dans la liste que le jour où on le choisit (fiche avec groupe, palier et consigne ; Smith : poids des disques sans la barre ; haltères : poids d'un seul haltère).
+- « Pas dans ma salle » masque une proposition pour toujours (réglage `hiddenAlternatives`, réaffichable). « Autre exercice… » ouvre la liste complète. Un exercice perso hors de la table propose les exercices déjà faits du même groupe.
+
 ### Données
 - Version 6 de la base : table `activities` (foot/tennis), `warmup` sur les séries, `deload` sur les séances, `compound` (polyarticulaire) sur les exercices, réglages `featureStartAt`, `deloadPeriods`, `deloadSnoozedUntil`. La migration ne perd rien ; l'export inclut tout et les anciens exports sont convertis à l'import.
 - Version 7 (étape 9) : tables `measurements` (une ligne par jour) et `photos` (image JPEG en texte, date, pose), `muscle` sur les exercices (rempli par la migration sans écraser un choix existant), réglage `monthlyReviewSeen`. Même règle : migration sans perte, export complet, anciens exports convertis à l'import.
 - Étape 10 : champ facultatif `drop` sur les séries (suite dégressive). Les séries existantes n'ont pas ce champ et restent des séries normales : pas de nouvelle version de la base.
 - Version 8 (étape 11) : groupe `fessiers`, migration des exercices, modèles et de la séance du 24/10 (ciblée par identifiant, sans effet si l'élément n'existe pas), réglage `footDays`. Même règle : rien n'est perdu, les anciens exports sont convertis à l'import.
+- Étape 12 : réglage `hiddenAlternatives` (vide par défaut) ; les exercices de remplacement sont des exercices normaux créés à la demande. Pas de nouvelle version de la base.
 
 ## Plus tard (pas dans la première version)
 - ~~Suggestion d'augmenter la charge quand toutes les reps sont réussies.~~ Fait : objectif du jour (section 8).

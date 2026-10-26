@@ -1,6 +1,6 @@
 import { offerUndo } from '../lib/undo'
 import { db, type SetEntry } from './database'
-import { deleteSession, deleteSet, removeExercise, updateSet } from './sessions'
+import { deleteSession, deleteSet, removeExercise, swapExercise, updateSet } from './sessions'
 import { deleteWeighIn } from './weighIns'
 
 /** Fait la modification d'une séance, puis propose de remettre la séance exactement comme avant. */
@@ -30,4 +30,8 @@ export async function deleteWeighInUndoable(date: string): Promise<void> {
   const before = await db.weighIns.get(date)
   await deleteWeighIn(date)
   if (before) offerUndo('Pesée supprimée', async () => void (await db.weighIns.put(before)))
+}
+
+export function swapExerciseUndoable(sessionId: string, exerciseIndex: number, newExerciseId: string) {
+  return withSessionUndo(sessionId, 'Exercice remplacé', () => swapExercise(sessionId, exerciseIndex, newExerciseId))
 }

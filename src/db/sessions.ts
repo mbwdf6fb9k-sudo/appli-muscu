@@ -240,6 +240,28 @@ export async function addAbs(id: string): Promise<void> {
   )
 }
 
+/**
+ * « Machine prise ? » : remplace l'exercice pour cette séance seulement (le modèle ne change pas).
+ * Sans séries faites, il est remplacé sur place ; sinon le remplaçant s'ajoute juste après.
+ * L'objectif est repris de l'exercice remplacé (sauf entre durée et reps : alors celui d'un modèle, s'il existe).
+ */
+export async function swapExercise(id: string, exerciseIndex: number, newExerciseId: string): Promise<void> {
+  const replacement = await db.exercises.get(newExerciseId)
+  if (!replacement) return
+  const templates = await db.templates.toArray()
+  const ownTarget = templates.find((t) => t.targets?.[newExerciseId])?.targets?.[newExerciseId]
+  await updateSession(id, (s) => {
+    const entry = s.exercises[exerciseIndex]
+    if (!entry || s.exercises.some((e) => e.exerciseId === newExerciseId)) return
+    const sameUnit = (entry.type === 'duration') === (replacement.type === 'duration')
+    const target = sameUnit ? entry.target : ownTarget && s.deload ? deloadTarget(ownTarget) : ownTarget
+    const swapped = withTarget({ exerciseId: newExerciseId, type: replacement.type, sets: [], note: '' }, target)
+    if (entry.fromAbs) swapped.fromAbs = true
+    if (entry.sets.length === 0) s.exercises.splice(exerciseIndex, 1, swapped)
+    else s.exercises.splice(exerciseIndex + 1, 0, swapped)
+  })
+}
+
 export function removeExercise(id: string, exerciseIndex: number) {
   return updateSession(id, (s) => {
     s.exercises.splice(exerciseIndex, 1)

@@ -31,6 +31,8 @@ export interface Settings {
   monthlyReviewSeen: string | null
   /** Jours de foot habituels (0 = dimanche … 6 = samedi) : séance conseillée */
   footDays: number[]
+  /** « Machine prise ? » : remplacements masqués (« Pas dans ma salle ») */
+  hiddenAlternatives: string[]
 }
 
 export interface DeloadPeriod {
@@ -57,6 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
   deloadSnoozedUntil: null,
   monthlyReviewSeen: null,
   footDays: [],
+  hiddenAlternatives: [],
 }
 
 export async function readSettings(database: MuscuDB = db): Promise<Settings> {
