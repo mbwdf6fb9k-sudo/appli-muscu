@@ -244,7 +244,7 @@ export const PROGRAM_RULES: { title: string; text: string }[] = [
   },
   {
     title: 'Repos',
-    text: '2-3 min sur les exercices polyarticulaires, 1-1,5 min sur l’isolation (affichés seulement, pas de minuteur).',
+    text: '2-3 min sur les exercices polyarticulaires, 1-1,5 min sur l’isolation ; le chronomètre de repos démarre tout seul à chaque série.',
   },
   {
     title: 'Échauffement',

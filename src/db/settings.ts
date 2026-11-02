@@ -33,6 +33,10 @@ export interface Settings {
   footDays: number[]
   /** « Machine prise ? » : remplacements masqués (« Pas dans ma salle ») */
   hiddenAlternatives: string[]
+  /** Chronomètre de repos pendant la séance */
+  restTimer: boolean
+  /** Bip quand le repos minimum conseillé est atteint (appli ouverte) */
+  restBeep: boolean
 }
 
 export interface DeloadPeriod {
@@ -60,6 +64,8 @@ export const DEFAULT_SETTINGS: Settings = {
   monthlyReviewSeen: null,
   footDays: [],
   hiddenAlternatives: [],
+  restTimer: true,
+  restBeep: true,
 }
 
 export async function readSettings(database: MuscuDB = db): Promise<Settings> {

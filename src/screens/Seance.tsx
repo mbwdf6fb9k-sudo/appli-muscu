@@ -4,6 +4,7 @@ import { EditableRow } from '../components/EditableRow'
 import { ExerciseCard, type SupersetInfo } from '../components/ExerciseCard'
 import { ExercisePicker } from '../components/ExercisePicker'
 import { RecordToast, type RecordCelebration } from '../components/RecordToast'
+import { RestTimer } from '../components/RestTimer'
 import { removeExerciseUndoable } from '../db/undoable'
 import { ChevronLeftIcon, PlusIcon } from '../components/icons'
 import { Screen } from '../components/Screen'
@@ -214,6 +215,17 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
       </div>
 
       <RecordToast celebration={celebration} onClose={closeCelebration} />
+      {settings.restTimer && !editing && (
+        <>
+          {/* Place pour la barre du chronomètre, qui reste en bas de l'écran */}
+          <div className="rest-spacer" aria-hidden="true" />
+          <RestTimer
+            session={session}
+            exerciseName={(id) => exercisesById.get(id)?.name ?? 'Exercice'}
+            beepEnabled={settings.restBeep}
+          />
+        </>
+      )}
 
       <ExercisePicker
         open={pickerOpen}

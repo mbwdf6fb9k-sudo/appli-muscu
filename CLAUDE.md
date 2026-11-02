@@ -52,7 +52,7 @@ Toute l'interface est en **français**, les charges en **kg**.
   - Charge × reps (cas normal).
   - Poids du corps (tractions, dips…) : le champ kg sert au lest (0 = poids du corps).
   - Durée (gainage) : saisie en secondes.
-- **Pas de minuteur de repos** (je n'en veux pas).
+- **Chronomètre de repos** (ajouté à l'étape 13, après usage : voir section 8).
 - **Terminer la séance** : résumé avec durée, nombre de séries, volume total (kg × reps) et **records battus** mis en avant.
 - Si je ferme l'appli en pleine séance, je la retrouve intacte en revenant.
 
@@ -138,7 +138,7 @@ Le planning du jour dépend du type de journée (section 2).
 
 ### Programme personnalisé (étape 7)
 - Les modèles suivent `programme-muscu.md` : Dos-Biceps, Pecs-Triceps, **Jambes + rappel dos et épaules**, **Bras + épaules**, Abdos.
-- Chaque exercice d'un modèle a un **objectif** : séries × fourchette de reps (ou de secondes), reps qu'il doit rester en fin de série (le « RIR » du programme, affiché en clair : « Arrête la série quand tu pourrais encore faire 1 à 2 reps. »), repos conseillé (affiché seulement, pas de minuteur), superset éventuel (A1/A2…).
+- Chaque exercice d'un modèle a un **objectif** : séries × fourchette de reps (ou de secondes), reps qu'il doit rester en fin de série (le « RIR » du programme, affiché en clair : « Arrête la série quand tu pourrais encore faire 1 à 2 reps. »), repos conseillé (utilisé par le chronomètre de repos), superset éventuel (A1/A2…).
 - Chaque exercice a des **consignes** (technique, erreurs, remplacement), repliées derrière « Consignes » pendant la séance.
 - Aujourd'hui affiche la durée de chaque séance et des conseils de placement (Jambes : pas la veille du foot ; Bras : pas le lendemain de Dos-Biceps ou Pecs-Triceps).
 - Tout est modifiable dans Réglages → Exercices et modèles, qui rappelle aussi les règles du programme.
@@ -222,11 +222,16 @@ Le planning du jour dépend du type de journée (section 2).
 - Le remplaçant a son propre historique (dernière fois, objectif du jour, records). Un exercice proposé n'est créé dans la liste que le jour où on le choisit (fiche avec groupe, palier et consigne ; Smith : poids des disques sans la barre ; haltères : poids d'un seul haltère).
 - « Pas dans ma salle » masque une proposition pour toujours (réglage `hiddenAlternatives`, réaffichable). « Autre exercice… » ouvre la liste complète. Un exercice perso hors de la table propose les exercices déjà faits du même groupe.
 
+### Chronomètre de repos et « Pourquoi pas une autre ? » (étape 13)
+- **Chronomètre** : démarre tout seul à chaque série validée (échauffement et dégressive compris), calculé depuis l'heure de la dernière série (juste même après avoir verrouillé le téléphone). Barre en bas de la séance : « Repos 1:23 · conseillé 2-3 min · exercice », jauge jusqu'au minimum conseillé, puis « C'est reparti » en violet et un bip (appli ouverte seulement : pas de vibration ni de son écran verrouillé sur iPhone sans serveur). Au-delà du maximum : « Repos de 3:40 ». Superset : « Enchaîne avec … » après le premier de la paire. Croix pour masquer jusqu'à la série suivante. Réglages : chronomètre et bip, activés par défaut.
+- **Séance conseillée** : « Pourquoi pas une autre ? » déplie une raison par séance, tirée de la même règle (récupération, moins de 48 h, foot/tennis, jour de foot demain, ou « faite il y a N jours, X attend depuis plus longtemps »). Quand le conseil est le repos, la situation de chaque séance est listée.
+
 ### Données
 - Version 6 de la base : table `activities` (foot/tennis), `warmup` sur les séries, `deload` sur les séances, `compound` (polyarticulaire) sur les exercices, réglages `featureStartAt`, `deloadPeriods`, `deloadSnoozedUntil`. La migration ne perd rien ; l'export inclut tout et les anciens exports sont convertis à l'import.
 - Version 7 (étape 9) : tables `measurements` (une ligne par jour) et `photos` (image JPEG en texte, date, pose), `muscle` sur les exercices (rempli par la migration sans écraser un choix existant), réglage `monthlyReviewSeen`. Même règle : migration sans perte, export complet, anciens exports convertis à l'import.
 - Étape 10 : champ facultatif `drop` sur les séries (suite dégressive). Les séries existantes n'ont pas ce champ et restent des séries normales : pas de nouvelle version de la base.
 - Version 8 (étape 11) : groupe `fessiers`, migration des exercices, modèles et de la séance du 24/10 (ciblée par identifiant, sans effet si l'élément n'existe pas), réglage `footDays`. Même règle : rien n'est perdu, les anciens exports sont convertis à l'import.
+- Étape 13 : réglages `restTimer` et `restBeep` (activés par défaut) ; le chrono n'enregistre rien.
 - Étape 12 : réglage `hiddenAlternatives` (vide par défaut) ; les exercices de remplacement sont des exercices normaux créés à la demande. Pas de nouvelle version de la base.
 
 ## Plus tard (pas dans la première version)

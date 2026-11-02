@@ -129,6 +129,35 @@ export function Reglages() {
         </Link>
       </div>
 
+      <h2 className="section-title">Chronomètre de repos</h2>
+      <div className="card stack">
+        <label className="check-field">
+          <input
+            type="checkbox"
+            role="switch"
+            checked={settings?.restTimer ?? true}
+            onChange={(e) => setSetting('restTimer', e.target.checked)}
+          />
+          <span>
+            Chronomètre pendant la séance
+            <span className="muted small"> : démarre tout seul à chaque série validée</span>
+          </span>
+        </label>
+        <label className="check-field">
+          <input
+            type="checkbox"
+            role="switch"
+            checked={settings?.restBeep ?? true}
+            disabled={!(settings?.restTimer ?? true)}
+            onChange={(e) => setSetting('restBeep', e.target.checked)}
+          />
+          <span>
+            Bip à la fin du repos
+            <span className="muted small"> : seulement si l’appli est ouverte (pas écran verrouillé)</span>
+          </span>
+        </label>
+      </div>
+
       <h2 className="section-title">Jour(s) de foot habituel(s)</h2>
       <div className="card stack">
         <div className="weekday-picker" role="group" aria-label="Jours de foot habituels">

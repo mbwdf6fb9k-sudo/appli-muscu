@@ -476,9 +476,9 @@ describe('séance conseillée', () => {
   })
 
   it('la plus ancienne (jamais faite d’abord), ordre en cas d’égalité', async () => {
-    expect(await advise([])).toEqual({ kind: 'session', templateId: 'dos-biceps', reason: 'jamais faite, dos et biceps reposés' })
+    expect(await advise([])).toMatchObject({ kind: 'session', templateId: 'dos-biceps', reason: 'jamais faite, dos et biceps reposés' })
     const a = await advise([at(14, 'dos-biceps'), at(15, 'pecs-triceps'), at(16, 'bras'), at(17, 'jambes')])
-    expect(a).toEqual({ kind: 'session', templateId: 'dos-biceps', reason: 'pas faite depuis 8 jours, dos et biceps reposés' })
+    expect(a).toMatchObject({ kind: 'session', templateId: 'dos-biceps', reason: 'pas faite depuis 8 jours, dos et biceps reposés' })
   })
 
   it('séances écartées : Bras après Dos/Pecs (et inversement), même séance < 48 h, Jambes et le foot', async () => {

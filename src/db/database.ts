@@ -52,7 +52,7 @@ export interface Target {
   max: number
   /** « 1-2 » : reps gardées en réserve */
   rir?: string
-  /** « 2-3 min » : affiché seulement, pas de minuteur */
+  /** « 2-3 min » : repos conseillé (chronomètre de repos) */
   rest?: string
   /** Lettre du superset : les exercices de même lettre s'enchaînent sans pause */
   superset?: string
