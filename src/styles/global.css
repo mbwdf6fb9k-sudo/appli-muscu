@@ -3663,3 +3663,61 @@ a.btn {
   width: 100%;
   margin-top: 16px;
 }
+
+/* ============ Étape 15 : comparaison et sauvegarde sur le résumé ============ */
+.session-compare {
+  margin: 10px 4px 0;
+  line-height: 1.4;
+}
+
+.session-compare strong {
+  color: var(--text);
+  font-weight: 650;
+}
+
+.session-compare strong.compare-up,
+.compare-up {
+  color: var(--status-up);
+}
+
+.session-compare strong.compare-down,
+.compare-down {
+  color: var(--status-down);
+}
+
+.detail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.compare-badge {
+  flex: none;
+  font-size: 14px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.compare-same,
+.compare-new {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.resume-backup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+.resume-backup .btn {
+  width: 100%;
+}
+
+.resume-backup .btn svg {
+  width: 18px;
+  height: 18px;
+}

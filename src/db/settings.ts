@@ -37,6 +37,8 @@ export interface Settings {
   restTimer: boolean
   /** Bip quand le repos minimum conseillé est atteint (appli ouverte) */
   restBeep: boolean
+  /** Écran toujours allumé sur l'écran de séance */
+  keepScreenOn: boolean
 }
 
 export interface DeloadPeriod {
@@ -66,6 +68,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hiddenAlternatives: [],
   restTimer: true,
   restBeep: true,
+  keepScreenOn: true,
 }
 
 export async function readSettings(database: MuscuDB = db): Promise<Settings> {

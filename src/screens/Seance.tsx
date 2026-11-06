@@ -27,6 +27,7 @@ import { formatDuration, formatTime } from '../lib/format'
 import { sessionStats } from '../lib/sessionStats'
 import { stagnationDetails } from '../lib/stagnation'
 import { useNow } from '../lib/useNow'
+import { useWakeLock } from '../lib/wakeLock'
 
 const OPEN_KEY = 'appli-muscu-open-exercise'
 
@@ -60,6 +61,7 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
   const template = useTemplate(session.templateId === 'libre' ? undefined : session.templateId)
   const settings = useSettings()
   const now = useNow()
+  useWakeLock(settings?.keepScreenOn ?? false)
 
   // Exercice ouvert (mémorisé pour le retrouver après fermeture de l'appli)
   const [openId, setOpenIdState] = useState(() => initialOpen(session))

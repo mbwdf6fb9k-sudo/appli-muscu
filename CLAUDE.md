@@ -231,11 +231,17 @@ Le planning du jour dépend du type de journée (section 2).
 - Si l'exercice a un objectif dans un modèle, il est repris (sans le superset) ; sinon, saisie libre et chrono sans repos conseillé.
 - Elle compte comme les autres (semaine, série de semaines, calendrier avec un point couleur du texte « Libre », historique, records, progrès, séries par muscle, bilan, CSV, jour d'entraînement pour les compléments). Pour la séance conseillée, elle compte dans « 4 séances dans la semaine » et « 3 jours d'affilée », mais n'est jamais conseillée et ses muscles ne sont pas pris en compte.
 
+### Écran allumé, sauvegarde et comparaison (étape 15)
+- **Écran allumé** : sur l'écran de séance, le téléphone ne se verrouille plus (redemandé au retour dans l'appli, rendu en quittant l'écran). Sans effet si iOS ne le permet pas. Réglage « Garder l'écran allumé », activé par défaut.
+- **Sauvegarde en un geste** : bouton « Sauvegarder mes données » sur le résumé juste après une séance (même export que dans les Réglages, via le partage iPhone), avec la date de la dernière sauvegarde.
+- **Comparaison avec la dernière fois** : sous les chiffres du résumé, volume et nombre de séries par rapport à la dernière séance du même type ; par exercice, « +2,5 kg », « +2 reps », « −1 rep », « −2,5 kg, +5 reps » (neutre), « = » ou « nouveau » (charge la plus lourde, puis reps totales à cette charge, sur les N premières séries de travail). Une séance allégée n'est pas comparée et ne sert pas de référence ; une séance libre n'a pas de comparaison globale, seulement par exercice.
+
 ### Données
 - Version 6 de la base : table `activities` (foot/tennis), `warmup` sur les séries, `deload` sur les séances, `compound` (polyarticulaire) sur les exercices, réglages `featureStartAt`, `deloadPeriods`, `deloadSnoozedUntil`. La migration ne perd rien ; l'export inclut tout et les anciens exports sont convertis à l'import.
 - Version 7 (étape 9) : tables `measurements` (une ligne par jour) et `photos` (image JPEG en texte, date, pose), `muscle` sur les exercices (rempli par la migration sans écraser un choix existant), réglage `monthlyReviewSeen`. Même règle : migration sans perte, export complet, anciens exports convertis à l'import.
 - Étape 10 : champ facultatif `drop` sur les séries (suite dégressive). Les séries existantes n'ont pas ce champ et restent des séries normales : pas de nouvelle version de la base.
 - Version 8 (étape 11) : groupe `fessiers`, migration des exercices, modèles et de la séance du 24/10 (ciblée par identifiant, sans effet si l'élément n'existe pas), réglage `footDays`. Même règle : rien n'est perdu, les anciens exports sont convertis à l'import.
+- Étape 15 : réglage `keepScreenOn`, activé par défaut.
 - Étape 14 : type de séance `libre`, sans modèle ni nouvelle version de la base.
 - Étape 13 : réglages `restTimer` et `restBeep` (activés par défaut) ; le chrono n'enregistre rien.
 - Étape 12 : réglage `hiddenAlternatives` (vide par défaut) ; les exercices de remplacement sont des exercices normaux créés à la demande. Pas de nouvelle version de la base.

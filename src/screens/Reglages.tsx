@@ -158,6 +158,22 @@ export function Reglages() {
         </label>
       </div>
 
+      <h2 className="section-title">Pendant la séance</h2>
+      <div className="card stack">
+        <label className="check-field">
+          <input
+            type="checkbox"
+            role="switch"
+            checked={settings?.keepScreenOn ?? true}
+            onChange={(e) => setSetting('keepScreenOn', e.target.checked)}
+          />
+          <span>
+            Garder l’écran allumé
+            <span className="muted small"> : le téléphone ne se verrouille plus entre deux séries (consomme un peu plus de batterie)</span>
+          </span>
+        </label>
+      </div>
+
       <h2 className="section-title">Jour(s) de foot habituel(s)</h2>
       <div className="card stack">
         <div className="weekday-picker" role="group" aria-label="Jours de foot habituels">

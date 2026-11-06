@@ -1,7 +1,9 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
+import { exportToFile } from '../lib/backupFile'
+import { compareExercise, compareSession, type SessionComparison } from '../lib/compare'
 import { Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeftIcon, PlusIcon, TrophyIcon } from '../components/icons'
+import { ChevronLeftIcon, PlusIcon, ShieldIcon, TrophyIcon } from '../components/icons'
 import { Screen } from '../components/Screen'
 import { SetEditSheet, withoutTime } from '../components/SetEditSheet'
 import type { Exercise, Session, SessionExercise } from '../db/database'
@@ -13,12 +15,13 @@ import {
   changeSessionDate,
   previousSets,
   setNote,
+  useDoneSessions,
   useSession,
 } from '../db/sessions'
 import { deleteSessionUndoable, deleteSetUndoable, removeExerciseUndoable, updateSetUndoable } from '../db/undoable'
 import { useSettings } from '../db/settings'
-import { formatLongDate, localDateStamp } from '../lib/dates'
-import { formatDuration, formatSet, formatSetsLine, formatVolume } from '../lib/format'
+import { daysSince, formatDaysAgo, formatLongDate, localDateStamp } from '../lib/dates'
+import { formatDuration, formatNumber, formatSet, formatSetsLine, formatShortDate, formatVolume } from '../lib/format'
 import { DEFAULT_VALUES, type SetValues } from '../lib/prefill'
 import { findBrokenRecords, formatRecord, RECORD_LABELS, type BrokenRecord, type RecordKind } from '../lib/records'
 import { sessionStats } from '../lib/sessionStats'
@@ -62,6 +65,7 @@ export function SeanceResume({ mode }: { mode: 'resume' | 'history' }) {
   const session = useSession(id)
   const exercisesById = useExercisesById()
   const settings = useSettings()
+  const doneSessions = useDoneSessions()
   const [editing, setEditing] = useState(false)
   const highlights = useLiveQuery(async () => (session ? computeHighlights(session) : undefined), [session])
 
@@ -70,6 +74,7 @@ export function SeanceResume({ mode }: { mode: 'resume' | 'history' }) {
   if (!session || !exercisesById || !settings) return null
 
   const stats = sessionStats(session)
+  const comparison = doneSessions ? compareSession(session, doneSessions) : null
   const name = (exerciseId: string) => exercisesById.get(exerciseId)?.name ?? 'Exercice supprimé'
   const back = () => (mode === 'history' && location.key !== 'default' ? navigate(-1) : navigate(home))
 
@@ -99,6 +104,7 @@ export function SeanceResume({ mode }: { mode: 'resume' | 'history' }) {
         <Stat label="Séries" value={String(stats.setCount)} />
         <Stat label="Volume" value={formatVolume(stats.volume)} />
       </div>
+      {comparison && !editing && <SessionCompareLine session={session} comparison={comparison} />}
 
       {editing ? (
         <EditSession session={session} exercisesById={exercisesById} defaultStep={settings.weightStep} onDelete={handleDelete} />
@@ -139,13 +145,18 @@ export function SeanceResume({ mode }: { mode: 'resume' | 'history' }) {
           <div className="card detail-list">
             {session.exercises.map((entry) => (
               <div key={entry.exerciseId} className="detail-row">
-                <span className="detail-name">{name(entry.exerciseId)}</span>
+                <span className="detail-head">
+                  <span className="detail-name">{name(entry.exerciseId)}</span>
+                  {doneSessions && <CompareBadge session={session} entry={entry} sessions={doneSessions} />}
+                </span>
                 <span className="muted small">{detailLine(entry)}</span>
                 {entry.note && <span className="detail-note">« {entry.note} »</span>}
               </div>
             ))}
             {session.exercises.length === 0 && <p className="muted small">Aucune série.</p>}
           </div>
+
+          {mode === 'resume' && <BackupNow lastExportAt={settings.lastExportAt} />}
 
           {mode === 'resume' && (
             <button className="btn btn-primary resume-done" onClick={() => navigate('/')}>
@@ -155,6 +166,60 @@ export function SeanceResume({ mode }: { mode: 'resume' | 'history' }) {
         </>
       )}
     </Screen>
+  )
+}
+
+/** « Par rapport à ta dernière Pecs-Triceps (24 oct.) : volume +8 % · +2 séries » */
+function SessionCompareLine({ session, comparison }: { session: Session; comparison: SessionComparison }) {
+  const pct = comparison.volume === null ? null : Math.round(comparison.volume * 100)
+  const tone = (value: number) => (value > 0 ? 'compare-up' : value < 0 ? 'compare-down' : '')
+  const signed = (value: number) => `${value > 0 ? '+' : value < 0 ? '−' : ''}${formatNumber(Math.abs(value))}`
+  return (
+    <p className="muted small session-compare">
+      Par rapport à ta dernière {TEMPLATE_NAMES[session.templateId]} ({formatShortDate(new Date(comparison.date))}) :{' '}
+      {pct !== null && (
+        <>
+          volume <strong className={tone(pct)}>{pct === 0 ? 'identique' : `${signed(pct)} %`}</strong> ·{' '}
+        </>
+      )}
+      <strong className={tone(comparison.sets)}>
+        {comparison.sets === 0 ? 'même nombre de séries' : `${signed(comparison.sets)} série${Math.abs(comparison.sets) > 1 ? 's' : ''}`}
+      </strong>
+    </p>
+  )
+}
+
+/** « +2,5 kg », « −1 rep », « = », « nouveau » */
+function CompareBadge({ session, entry, sessions }: { session: Session; entry: SessionExercise; sessions: Session[] }) {
+  const result = compareExercise(session, entry, sessions)
+  if (!result) return null
+  return <span className={`compare-badge compare-${result.tone}`}>{result.label}</span>
+}
+
+/** Sauvegarde en un geste, juste après la séance (même export que dans les Réglages). */
+function BackupNow({ lastExportAt }: { lastExportAt: string | null }) {
+  const [state, setState] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
+  async function save() {
+    setState('busy')
+    try {
+      setState((await exportToFile()) === 'cancelled' ? 'idle' : 'done')
+    } catch {
+      setState('error')
+    }
+  }
+  return (
+    <div className="resume-backup">
+      <button className="btn btn-secondary" onClick={save} disabled={state === 'busy'}>
+        <ShieldIcon /> {state === 'done' ? 'Sauvegardé ✓' : 'Sauvegarder mes données'}
+      </button>
+      <p className={state === 'error' ? 'feedback feedback-error' : 'muted small'}>
+        {state === 'error'
+          ? 'La sauvegarde a échoué. Réessaie.'
+          : lastExportAt
+            ? `Dernière sauvegarde ${formatDaysAgo(daysSince(lastExportAt))}`
+            : 'Aucune sauvegarde pour l’instant'}
+      </p>
+    </div>
   )
 }
 
