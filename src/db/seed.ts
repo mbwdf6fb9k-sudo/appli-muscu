@@ -1,15 +1,16 @@
-import type { Exercise, ExerciseType, SessionTemplateId, Supplement, Template, TemplateId } from './database'
+import type { Exercise, ExerciseType, ProgramSessionId, SessionTemplateId, Supplement, Template, TemplateId } from './database'
 
-export const TEMPLATE_NAMES: Record<TemplateId, string> = {
+export const TEMPLATE_NAMES: Record<TemplateId | SessionTemplateId, string> = {
   'dos-biceps': 'Dos-Biceps',
   'pecs-triceps': 'Pecs-Triceps',
   jambes: 'Jambes + rappel dos et épaules',
   bras: 'Bras + épaules',
   abdos: 'Abdos',
+  libre: 'Séance libre',
 }
 
 /** Les séances proposées sur l'écran Aujourd'hui, dans l'ordre. */
-export const SESSION_TEMPLATE_IDS: SessionTemplateId[] = ['dos-biceps', 'pecs-triceps', 'jambes', 'bras']
+export const SESSION_TEMPLATE_IDS: ProgramSessionId[] = ['dos-biceps', 'pecs-triceps', 'jambes', 'bras']
 
 /** « Développé couché barre » → « developpe-couche-barre » */
 export function slugify(name: string): string {

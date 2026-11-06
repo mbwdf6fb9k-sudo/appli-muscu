@@ -129,7 +129,8 @@ export async function startSession(templateId: SessionTemplateId, now = new Date
     const deload = !!activeDeload((await readSettings()).deloadPeriods, localDateStamp(now))
     const targetOf = (target: Target | undefined) => (target && deload ? deloadTarget(target) : target)
 
-    const template = await db.templates.get(templateId)
+    // Séance libre : pas de modèle, elle démarre vide
+    const template = templateId === 'libre' ? undefined : await db.templates.get(templateId)
     const exercises = await db.exercises.bulkGet(template?.exerciseIds ?? [])
     const session: Session = {
       id: crypto.randomUUID(),
@@ -210,6 +211,12 @@ function withTarget(entry: SessionExercise, target: Target | undefined): Session
   return entry
 }
 
+function withoutSuperset(target: Target): Target {
+  const copy = { ...target }
+  delete copy.superset
+  return copy
+}
+
 export async function addExercises(id: string, exerciseIds: string[], fromAbs = false): Promise<void> {
   const exercises = await db.exercises.bulkGet(exerciseIds)
   const session = await db.sessions.get(id)
@@ -221,7 +228,9 @@ export async function addExercises(id: string, exerciseIds: string[], fromAbs = 
   await updateSession(id, (s) => {
     for (const e of exercises) {
       if (!e || s.exercises.some((x) => x.exerciseId === e.id)) continue
-      const target = targetOf(e.id)
+      const found = targetOf(e.id)
+      // Séance libre : l'objectif du modèle est repris, mais sans le superset (il n'y a pas de paire ici)
+      const target = found && s.templateId === 'libre' ? withoutSuperset(found) : found
       const entry = withTarget({ exerciseId: e.id, type: e.type, sets: [], note: '' }, target && s.deload ? deloadTarget(target) : target)
       if (fromAbs) entry.fromAbs = true
       s.exercises.push(entry)

@@ -81,6 +81,12 @@ export function Aujourdhui() {
               )
             })}
             <ChoiceCard
+              label={TEMPLATE_NAMES.libre}
+              detail="au feeling : tu choisis tes exercices"
+              selected={choice === 'libre'}
+              onSelect={() => toggle('libre')}
+            />
+            <ChoiceCard
               label="Repos"
               detail="récupération"
               selected={choice === 'repos'}

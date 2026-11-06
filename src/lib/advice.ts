@@ -1,12 +1,12 @@
-import type { Activity, Session, SessionTemplateId } from '../db/database'
+import type { Activity, ProgramSessionId, Session } from '../db/database'
 import { TEMPLATE_NAMES } from '../db/seed'
 import { daysSince, formatDaysAgo, localDateStamp } from './dates'
 import { startOfWeek } from './progress'
 
-/** Ordre en cas d'égalité. */
-const ORDER: SessionTemplateId[] = ['dos-biceps', 'pecs-triceps', 'bras', 'jambes']
+/** Séances conseillables (jamais la séance libre) ; ordre en cas d'égalité. */
+const ORDER: ProgramSessionId[] = ['dos-biceps', 'pecs-triceps', 'bras', 'jambes']
 
-const RESTED: Record<SessionTemplateId, string> = {
+const RESTED: Record<ProgramSessionId, string> = {
   'dos-biceps': 'dos et biceps reposés',
   'pecs-triceps': 'pecs et triceps reposés',
   bras: 'bras reposés',
@@ -19,12 +19,12 @@ export const MAX_DAYS_IN_A_ROW = 3
 
 /** « Pourquoi pas une autre ? » : une raison par séance non conseillée. */
 export interface OtherReason {
-  templateId: SessionTemplateId
+  templateId: ProgramSessionId
   reason: string
 }
 
 export type Advice =
-  | { kind: 'session'; templateId: SessionTemplateId; reason: string; others: OtherReason[] }
+  | { kind: 'session'; templateId: ProgramSessionId; reason: string; others: OtherReason[] }
   | { kind: 'rest'; reason: string; others: OtherReason[] }
 
 export interface AdviceContext {
@@ -56,16 +56,16 @@ export function adviceOfDay({ sessions, activities, footDays, now }: AdviceConte
   const yesterdayTemplates = new Set(done.filter((s) => s.date === yesterday).map((s) => s.templateId))
   const sportOn = (date: string) => activities.find((a) => a.date === date)
   const footTomorrow = footDays.includes(addDays(now, 1).getDay())
-  const lastDone = (id: SessionTemplateId) =>
+  const lastDone = (id: ProgramSessionId) =>
     done.filter((s) => s.templateId === id).reduce<string | null>((max, s) => (!max || s.startedAt > max ? s.startedAt : max), null)
   const sportName = (type: Activity['type']) => (type === 'foot' ? 'Foot' : 'Tennis')
-  const since = (id: SessionTemplateId) => {
+  const since = (id: ProgramSessionId) => {
     const last = lastDone(id)
     return last ? `faite ${formatDaysAgo(daysSince(last, now))}` : 'jamais faite'
   }
 
   /** Pourquoi une séance est écartée aujourd'hui (null si elle est possible). */
-  const excludedBecause = (id: SessionTemplateId): string | null => {
+  const excludedBecause = (id: ProgramSessionId): string | null => {
     if (id === 'bras') {
       if (yesterdayTemplates.has('dos-biceps')) return 'Dos-Biceps faite hier : biceps pas encore récupérés'
       if (yesterdayTemplates.has('pecs-triceps')) return 'Pecs-Triceps faite hier : triceps pas encore récupérés'

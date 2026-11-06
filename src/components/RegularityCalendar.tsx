@@ -20,6 +20,7 @@ const LEGEND: { id: SessionTemplateId; label: string }[] = [
   { id: 'pecs-triceps', label: 'Pecs-Triceps' },
   { id: 'jambes', label: 'Jambes' },
   { id: 'bras', label: 'Bras' },
+  { id: 'libre', label: 'Libre' },
 ]
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 const ACTIVITIES: { type: ActivityType; label: string }[] = [

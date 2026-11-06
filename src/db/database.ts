@@ -58,8 +58,11 @@ export interface Target {
   superset?: string
 }
 
-export type SessionTemplateId = 'dos-biceps' | 'pecs-triceps' | 'jambes' | 'bras'
-export type TemplateId = SessionTemplateId | 'abdos'
+/** Les séances du programme, chacune avec son modèle. */
+export type ProgramSessionId = 'dos-biceps' | 'pecs-triceps' | 'jambes' | 'bras'
+/** « libre » : séance au feeling, sans modèle (on choisit ses exercices sur le moment). */
+export type SessionTemplateId = ProgramSessionId | 'libre'
+export type TemplateId = ProgramSessionId | 'abdos'
 
 export interface Template {
   id: TemplateId

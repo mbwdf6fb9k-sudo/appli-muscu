@@ -2323,6 +2323,11 @@ p {
   background: var(--tpl-bras);
 }
 
+/* Séance libre : couleur du texte, bien distincte des 4 couleurs de séance */
+.tpl-libre {
+  background: var(--text);
+}
+
 .calendar-activity {
   display: inline-block;
   flex: none;
@@ -3651,4 +3656,10 @@ a.btn {
 /* Pendant la séance, « Annuler » s'affiche au-dessus du chronomètre */
 .undo-toast:not(.above-tabbar) {
   bottom: calc(var(--safe-bottom) + 84px);
+}
+
+/* ============ Étape 14 : séance libre ============ */
+.session-add {
+  width: 100%;
+  margin-top: 16px;
 }

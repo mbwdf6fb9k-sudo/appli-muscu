@@ -57,14 +57,16 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
   const navigate = useNavigate()
   const exercisesById = useExercisesById()
   const doneSessions = useDoneSessions()
-  const template = useTemplate(session.templateId)
+  const template = useTemplate(session.templateId === 'libre' ? undefined : session.templateId)
   const settings = useSettings()
   const now = useNow()
 
   // Exercice ouvert (mémorisé pour le retrouver après fermeture de l'appli)
   const [openId, setOpenIdState] = useState(() => initialOpen(session))
   const [editing, setEditing] = useState(false)
-  const [pickerOpen, setPickerOpen] = useState(false)
+  const isFree = session.templateId === 'libre'
+  // Séance libre : elle démarre vide, la liste des exercices s'ouvre tout de suite
+  const [pickerOpen, setPickerOpen] = useState(() => isFree && session.exercises.length === 0)
   const [askTemplate, setAskTemplate] = useState(false)
   const [finishOpen, setFinishOpen] = useState(false)
   const [celebration, setCelebration] = useState<RecordCelebration | null>(null)
@@ -187,9 +189,17 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
             />
           ))}
           {session.exercises.length === 0 && (
-            <p className="muted small hint">Aucun exercice : ajoutes-en avec « Modifier la liste ».</p>
+            <p className="muted small hint">
+              {isFree ? 'Ajoute ton premier exercice pour commencer.' : 'Aucun exercice : ajoutes-en avec « Modifier la liste ».'}
+            </p>
           )}
         </div>
+      )}
+
+      {isFree && !editing && (
+        <button className="btn btn-primary session-add" onClick={() => setPickerOpen(true)}>
+          <PlusIcon /> Ajouter un exercice
+        </button>
       )}
 
       <div className={editing ? 'session-tools session-tools-stack' : 'session-tools'}>
@@ -231,7 +241,10 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
         excludeIds={ids}
-        onPick={(id) => addExercises(session.id, [id])}
+        onPick={async (id) => {
+          await addExercises(session.id, [id])
+          if (isFree && !editing) setOpenId(id)
+        }}
       />
 
       <Sheet open={askTemplate} onClose={() => setAskTemplate(false)} title="Modifier aussi le modèle ?">
@@ -243,7 +256,7 @@ function SeanceView({ session, onLeave }: { session: Session; onLeave: (to: stri
           <button
             className="btn btn-primary"
             onClick={async () => {
-              await setTemplateExercises(session.templateId, templateListFromSession(session))
+              if (session.templateId !== 'libre') await setTemplateExercises(session.templateId, templateListFromSession(session))
               setAskTemplate(false)
             }}
           >
